@@ -57,7 +57,7 @@ class Registry:
         with mlflow.start_run(run_name="entrenamiento-temporal") as run:
             params = {"algorithm": "HistGradientBoostingRegressor", "seed": 42,
                       "max_iter": 150, "max_leaf_nodes": 31, "learning_rate": 0.08,
-                      "l2_regularization": 1, "implementation": "fase3-v1",
+                      "l2_regularization": 1, "implementation": "fase4-v1",
                       "source_revision": os.environ.get("SOURCE_REVISION", "no-proporcionada"),
                       "requirements_sha256": hashlib.sha256(Path("requirements.txt").read_bytes()).hexdigest()}
             for name, split in report["splits"].items():
@@ -70,11 +70,20 @@ class Registry:
             mlflow.set_tags({"promotion_eligible": str(report["eligible"]).lower(),
                              "promotion_reason": report["reason"]})
             mlflow.log_dict(report, "validacion.json")
+            if "operational_lineage" in report:
+                mlflow.log_params(report["operational_lineage"])
+                mlflow.set_tag("airflow_execution_id", report["execution_id"])
+
             # Linaje de datos: metadatos y hashes; nunca subir filas originales.
             inputs = [DatasetInput(Dataset(name=filename, digest=digest[:36],
                                              source_type="local", source=json.dumps({"file": filename, "sha256": digest})),
                                     tags=[InputTag("mlflow.data.context", "training-validation")])
                       for filename, digest in report["hashes"].items()]
+            if "operational_lineage" in report:
+                lineage = report["operational_lineage"]
+                inputs.append(DatasetInput(Dataset(name="historico-con-observaciones",
+                    digest=lineage["snapshot_sha256"][:36], source_type="local",
+                    source=json.dumps(lineage)), tags=[InputTag("mlflow.data.context", "training-validation")]))
             self.client.log_inputs(run.info.run_id, inputs)
             requirements = [f"{p}=={importlib.metadata.version(p)}"
                             for p in ["mlflow-skinny", "cloudpickle", "numpy", "pandas", "scikit-learn", "joblib", "pydantic"]]
@@ -87,7 +96,10 @@ class Registry:
             version = mlflow.register_model(logged.model_uri, self.name,
                 tags={"eligible": str(report["eligible"]).lower(),
                       "available_from": artifact.available_from,
-                      "validation_end": report["splits"]["validation"]["end"]})
+                      "validation_end": report["splits"]["validation"]["end"],
+                      "execution_id": report.get("execution_id", "bootstrap"),
+                      "incumbent_version": report.get("incumbent_version", ""),
+                      "promotion_reason": report["reason"]})
         return version
 
     def promote(self, version):

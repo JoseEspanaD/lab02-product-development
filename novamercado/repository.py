@@ -12,6 +12,9 @@ from psycopg.types.json import Jsonb
 from .data import Data
 
 DDL = """
+CREATE TABLE IF NOT EXISTS ejecuciones (
+ id text PRIMARY KEY, version_inicial text NOT NULL, resultado jsonb
+);
 CREATE TABLE IF NOT EXISTS solicitudes (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     endpoint text NOT NULL,
@@ -118,6 +121,27 @@ class PostgresRepository:
         holidays["fecha"] = pd.to_datetime(holidays.fecha)
         return Data(h, stores, catalogs["familias.csv"], holidays, catalogs["costos.csv"],
                     {row["nombre"]: row["sha256"] for row in metadata})
+
+    @contextmanager
+    def submission_lock(self):
+        with self.connect() as conn:
+            conn.execute("SET LOCAL statement_timeout = '15s'")
+            conn.execute("SELECT pg_advisory_xact_lock(202602,4)")
+            yield
+
+    def save_execution(self, run_id, version):
+        with self.connect() as conn:
+            conn.execute("INSERT INTO ejecuciones VALUES (%s,%s,NULL) ON CONFLICT (id) DO NOTHING",
+                         (run_id, version))
+
+    def execution(self, run_id):
+        with self.connect() as conn:
+            return conn.execute("SELECT * FROM ejecuciones WHERE id=%s", (run_id,)).fetchone()
+
+    def finish_execution(self, run_id, result):
+        with self.connect() as conn:
+            conn.execute("UPDATE ejecuciones SET resultado=%s WHERE id=%s AND resultado IS NULL",
+                         (Jsonb(result), run_id))
 
     def healthy(self):
         try:

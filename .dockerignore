@@ -5,3 +5,7 @@
 !novamercado/
 novamercado/**
 !novamercado/*.py
+
+!Dockerfile.airflow
+!dags/
+!dags/*.py

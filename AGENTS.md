@@ -6,8 +6,8 @@ contrato completo, auditoría, arquitectura y fases. Idioma: español.
 
 ## Alcance actual
 
-Fase 3 autorizada: MLflow, Compose y bootstrap, en fase-3-mlflow-docker.
-Fases 1 y 2 integradas mediante PR #1 y #2. No avanzar a Fase 4 sin autorización.
+Fase 4 autorizada: Airflow y reentrenamiento, en fase-4-airflow-reentrenamiento.
+Fases 1–3 integradas mediante PR #1, #2 y #3. No avanzar a Fase 5 sin autorización.
 Trabajar una fase a la vez. No iniciar fase siguiente sin permiso.
 No delegar a subagentes salvo petición expresa del usuario.
 Priorizar Python sencillo, módulos pequeños y decisiones fáciles de explicar.
@@ -62,8 +62,8 @@ protegidos ni solicitar tokens por chat. No incluir credenciales en salidas.
 
 ## Operación desde Fase 3
 
-Compose: api, postgres del producto, mlflow y bootstrap finito. Airflow pendiente;
-health debe reflejarlo como degradado, nunca declarar ok sin todas las dependencias.
+Compose: api, postgres del producto, mlflow, bootstrap finito, airflow y airflow-db.
+Health solo indica ok al verificar todas las dependencias; nunca simular salud.
 Modelo novamercado con alias champion. Todo escritor de alias debe usar
 PostgresRepository.model_lock, comparar costo con baseline/vigente en la misma
 ventana futura y validar el artefacto antes de promover. No promover empates.
@@ -75,3 +75,12 @@ fechas anteriores devuelven 503 explicativo para evitar fuga temporal.
 No compartir la DB ni los volúmenes del producto con el futuro Airflow.
 Pruebas de fallos de scripts/verify_stack.py solo sobre un proyecto Compose
 exclusivo de prueba: reinicia/detiene contenedores, conserva volúmenes.
+
+## Operación desde Fase 4
+
+DAG bajo demanda, una ejecución activa y un reintento acotado. No usar logical_date
+ni reloj para cortar los datos. Reutilizar entrenamiento/evaluación/Registry.
+Conservar ejecuciones y versiones; reintentos recuperan registros por run_id.
+Compose tiene límites de memoria/CPU; hilos numéricos y paralelismo Airflow acotados.
+Probar fallos solo en proyecto Compose exclusivo y conservar todos los volúmenes.
+No iniciar copias adicionales del stack para pruebas sin revisar memoria disponible.
