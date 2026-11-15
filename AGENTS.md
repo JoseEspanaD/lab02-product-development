@@ -6,7 +6,8 @@ contrato completo, auditoría, arquitectura y fases. Idioma: español.
 
 ## Alcance actual
 
-Solo preparación. No implementar hasta autorización expresa del usuario.
+Fase 1 autorizada: modelado y validación temporal, en fase-1-modelado.
+No avanzar a la Fase 2 sin autorización expresa del usuario.
 Trabajar una fase a la vez. No iniciar fase siguiente sin permiso.
 No delegar a subagentes salvo petición expresa del usuario.
 Priorizar Python sencillo, módulos pequeños y decisiones fáciles de explicar.

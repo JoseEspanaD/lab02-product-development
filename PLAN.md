@@ -3,12 +3,13 @@
 ## Alcance y estado
 
 Preparación realizada el 2026-11-14. Fuente oficial: instrucciones_lab.pdf,
-7 páginas leídas, incluido el anexo completo. No se ha implementado el producto.
+7 páginas leídas, incluido el anexo completo. Solo el modelado está implementado.
 Cada fase requiere autorización expresa; no comenzar la siguiente por iniciativa propia.
 
-Estado: análisis y documentación listos; .venv creada. Git y publicación bloqueados:
-.git es un montaje de solo lectura; gh está instalado pero su token es inválido;
-la terminal no resuelve el servidor de paquetes. No hay commit, push ni URL confirmada.
+Estado: repositorio público configurado y main actualizado. Fase 1 implementada
+en fase-1-modelado, pendiente de revisión y aprobación de merge. No iniciar Fase 2.
+La terminal requiere elevación para Git, GitHub y descargas; se solicitará
+para cada operación bloqueada. No se han cambiado permisos del sistema.
 
 ## Requisitos obligatorios y verificación
 
@@ -122,8 +123,7 @@ medición. Si no mejora, ajustar únicamente con autorización de la fase vigent
 ### Fase 0 — Preparación (esta solicitud)
 
 Entorno, auditoría, documentos y repositorio público con commit inicial en main.
-Verificar que datos, PDF y secretos no estén incluidos. Pendiente resolver montaje
-.git y autenticación/conectividad; pasos concretos en README.
+Repositorio público y commit inicial confirmados; datos, PDF y secretos excluidos.
 
 ### Fase 1 — Modelado (fase-1-modelado)
 
@@ -132,6 +132,16 @@ cronológica y sugerencias por costo. Dependencias solo al necesitarlas.
 Verificar MAE/RMSE y costo total/por familia sobre fechas retenidas; mejorar al
 baseline. Medir entrenamiento; tests de corte temporal, apertura y feriados.
 Registrar decisiones, semilla y huellas de datos, sin publicar filas originales.
+
+Progreso: carga validada, features temporales compartidas, baseline estacional,
+HistGradientBoostingRegressor, calibrador por costo, CLI de evaluación y pruebas.
+Evaluación final: 7 080 filas de enero–febrero 2026; costo 307 713,40 -> 195 030,00
+(-36,62 %); mejora en ambas mensualidades y las 12 familias. MAE 59,72 -> 39,47;
+RMSE 111,12 -> 72,51. Entrenamiento ML aproximadamente 1,4 s en este equipo.
+Resultados y protocolo en RESULTADOS_FASE1.md. Pruebas: 25 casos sintéticos,
+con advertencias tratadas como errores. Verificación Git/push/PR al cerrar fase.
+No se implementó ningún componente de la Fase 2 ni de infraestructura.
+
 
 ### Fase 2 — API y persistencia (fase-2-api)
 

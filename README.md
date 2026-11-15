@@ -1,31 +1,74 @@
 # Laboratorio 2 — NovaMercado
 
-Estado: preparación y análisis. El producto todavía no está implementado.
-Ver [PLAN.md](PLAN.md), [AGENTS.md](AGENTS.md) y [DECISIONES.md](DECISIONES.md).
+Modelado y validación temporal implementados en `fase-1-modelado`, pendientes de
+revisión por PR. Repositorio: https://github.com/JoseEspanaD/lab02-product-development.
+API e infraestructura todavía no implementadas; no hay comando Docker operativo.
 
-## Entorno local
+## Preparar el entorno existente
 
 ```bash
 cd ~/lab02_pd
 source .venv/bin/activate
 python --version
+python -m pip install -r requirements.txt
+python -m pip check
 ```
 
-Entorno creado con `python3 -m venv --prompt lab02 .venv`, Python 3.14.4,
-pip 25.1.1. No hay paquetes de aplicación instalados. La instalación auxiliar de
-pypdf falló por DNS; el PDF se leyó extrayendo sus siete páginas con la biblioteca
-estándar, sin modificarlo ni instalar dependencias adicionales.
-La compatibilidad del stack y la versión Python de Docker se comprobarán en la
-fase correspondiente; no asumir compatibilidad de Airflow con Python 3.14.
+Usar exclusivamente `.venv/` (prompt `lab02`), con Python 3.14.4. Las versiones
+fijadas fueron instaladas con wheels compatibles y probadas en ese entorno.
+La documentación oficial de [scikit-learn](https://scikit-learn.org/stable/install)
+describe sus requisitos; la versión de Python de futuros contenedores se validará
+al integrar Airflow. No instalar paquetes globalmente.
 
-Los archivos docentes deben colocarse en `data/`, manteniendo su estructura.
-No se publican ni se incorporarán a imágenes. `instrucciones_lab.pdf` también
-se conserva solo localmente. Las instrucciones de ejecución con Docker se
-incorporarán cuando exista y se verifique el producto.
+Colocar en `data/` los archivos docentes `historico_ventas.csv`, `tiendas.csv`,
+`familias.csv`, `feriados.csv` y `costos.csv`, conservando sus nombres y columnas.
+El PDF, los datos y sus ejemplos se mantienen solo localmente; no se modifican
+ni publican. No colocar secretos en archivos versionados.
 
-## Flujo por fase
+## Evaluar y probar
 
-Solo tras autorización, actualizar main y crear la rama de fase correspondiente.
-Al terminar: pruebas, commits descriptivos, push y PR con resultados reales.
-Esperar aprobación antes del merge, conservar las ramas y solicitar autorización
-antes de iniciar otra fase. El tag `entrega-lab2` se creará al final desde main.
+```bash
+.venv/bin/python -m pytest -q -W error
+.venv/bin/python -m novamercado.evaluate --data-dir data --output outputs/evaluacion.json
+```
+
+El evaluador lee los originales, entrena baseline y ML, calibra cantidades por
+costo y produce métricas globales, por familia y por mes, hashes de datos,
+versiones, cortes y tiempos. `outputs/` está ignorado por Git. El comando devuelve
+error si el ML no mejora el costo del baseline; no promueve modelos automáticamente.
+
+Por defecto: entrenamiento 2024-03-01–2025-10-31; calibración 2025-11-01–2025-12-31;
+evaluación 2026-01-01–2026-02-28. Se pueden cambiar los cortes con
+`--calibration-start`, `--test-start` y `--test-end` para otros históricos;
+los cortes deben ser ordenados y contener filas. Test posterior a calibración,
+sin split aleatorio ni ajuste de parámetros a partir del test.
+
+La evaluación reproduce pronósticos diarios de un paso: ventas hasta el día
+anterior disponibles y promociones del día conocidas por solicitud. No representa
+un pronóstico de varios meses sin recibir observaciones intermedias.
+
+## Código reutilizable
+
+- `novamercado/data.py`: carga, integridad y huellas SHA-256.
+- `features.py`: `build_features(history, requests, stores, holidays)`, conserva
+  el orden de solicitudes y usa exclusivamente ventas anteriores a cada fecha.
+- `models.py`: baseline estacional y regresor global, métodos `fit`/`predict`.
+- `costs.py`: calibrador con `fit`/`suggest`, métrica de costo, MAE y RMSE.
+- `evaluate.py`: protocolo temporal y CLI; pruebas sintéticas en `tests/`.
+
+Para inferencia, generar X con `build_features`, obtener venta esperada con
+`model.predict(X)` y cantidad con `calibrator.suggest(familias, predicciones)`.
+Usar el modelo/encoder y calibrador ajustados antes de la fecha pronosticada.
+El objeto modelo no contiene el histórico: las observaciones se proporcionan a
+la función de features. La API validará identidades y solicitudes en la Fase 2.
+
+Resultados: [RESULTADOS_FASE1.md](RESULTADOS_FASE1.md). Reglas y contexto:
+[AGENTS.md](AGENTS.md); requisitos y fases: [PLAN.md](PLAN.md); decisiones y
+limitaciones: [DECISIONES.md](DECISIONES.md).
+
+## Git y revisión
+
+main es estable. Cada fase autorizada parte de main actualizado en una rama
+propia, con commits, pruebas, push y PR hacia main. Nunca hacer merge sin
+aprobación ni eliminar las ramas después. No iniciar Fase 2 sin autorización.
+El tag `entrega-lab2` se creará desde main al finalizar el laboratorio.

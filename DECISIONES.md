@@ -1,4 +1,4 @@
-# Decisiones propuestas — pendientes de implementación y validación
+# Decisiones técnicas y de producto
 
 1. **Un paquete y Compose** en lugar de servicios de features/colas adicionales:
    reduce piezas sin eliminar FastAPI, PostgreSQL, MLflow ni Airflow obligatorios.
@@ -48,3 +48,52 @@ del dominio. Campos extra sin efecto pueden ignorarse con advertencia explícita
 un alias en conflicto se rechaza. No recortar valores altos solo por superar el
 máximo histórico. No usar la fecha actual como límite. Políticas concretas y
 pruebas se consolidarán en la fase autorizada; no constituyen código implementado.
+
+
+## Fase 1 — decisiones implementadas
+
+- Un candidato global `HistGradientBoostingRegressor` (150 iteraciones, 31 hojas,
+  learning_rate=0.08, l2=1, semilla 42), sin búsqueda de hiperparámetros. Objetivo:
+  error cuadrático sobre ventas, estimación de media condicional. Salida recortada
+  a cero. Frente a modelos por serie, aprovecha todas las tiendas/familias y
+  entrena en aproximadamente 1,4 s. No se necesita una GPU.
+- Baseline: media de hasta cuatro ventas del mismo día semanal (lags 7,14,21,28),
+  fallback media de los 28 días anteriores y cero si no hay historia. Es dinámico:
+  incorpora las observaciones disponibles cada día. Se calibra por costo igual
+  que el ML para no favorecer artificialmente al candidato.
+- Features: tienda, familia, ciudad y formato como categóricas; promociones del
+  día recibidas, día semanal/mes/día del mes, seno/coseno anual, edad de tienda,
+  indicadores de eventos nacionales y locales, lag7, medias7/28, estacional y
+  cantidad de días observados en 28 días. No se usan ventas del día ni futuras.
+- El encoder se ajusta solo con entrenamiento. Las categorías desconocidas
+  usan -1 (missing en el estimador); la validación comercial de catálogos en
+  solicitudes corresponde a la futura API. No se escala para árboles.
+- `build_features` es compartida entre entrenamiento e inferencia; recibe
+  historia y solicitudes por separado. Ignora ventas en solicitudes y obtiene
+  promociones de estas. Reindexa por días calendario, nunca por número de filas.
+  Huecos no son ceros observados, y se excluyen ventas anteriores a apertura.
+  Funciona sin consultar la fecha del sistema.
+- Split fijado antes de medir: entrenamiento hasta 2025-10-31; calibración en
+  noviembre–diciembre 2025; evaluación en enero–febrero 2026. Modelo fijo durante
+  calibración y evaluación. Las features de cada fecha se actualizan con ventas
+  anteriores, reproduciendo el orden diario descrito por el PDF. Los residuos
+  de calibración son fuera de entrenamiento y el test no ajusta parámetros.
+- Cuantiles por familia de `(real-predicho)/(predicho+1)` en calibración; el +1
+  evita dividir por cero y el residuo relativo comparte señal entre tiendas de
+  distinta escala. q=c_faltante/(c_faltante+c_sobrante). Sugerencia = redondear
+  max(0, predicho+(predicho+1)*cuantil). Es una aproximación de la distribución
+  condicional; el redondeo al entero más cercano puede desviarse del óptimo
+  discreto exacto. Se mide su costo real, no se presume optimalidad universal.
+- No se reentrena con calibración/test tras reportar resultados. No se exporta
+  un binario a Git. Las clases de modelo/calibrador son reutilizables para su
+  empaquetado posterior; MLflow y el ciclo de producción quedan pendientes.
+- requirements.txt fija versiones directas y transitivas realmente instaladas
+  en .venv. Solo NumPy, pandas, scikit-learn, threadpoolctl (límite de hilos) y
+  pytest se usan directamente; el resto son sus dependencias. Wheels cp314
+  instalados y pruebas exitosas confirman funcionamiento en Python 3.14.4.
+- Resultados: costo -36,62 %, mejor MAE/RMSE y menor costo en las 12 familias.
+  Ver RESULTADOS_FASE1.md. Un único bloque de test de dos meses no demuestra
+  desempeño durante todo un año ni ante el cambio de demanda desconocido.
+
+Las decisiones de políticas de entradas y promoción de modelos de las secciones
+anteriores siguen siendo propuestas para fases posteriores; no se implementaron.
