@@ -157,7 +157,7 @@ class PostgresRepository:
             """INSERT INTO solicitudes
             (endpoint,cuerpo_original,cuerpo_limpio,calidad,status,detalle)
             VALUES (%s,%s,%s,%s,%s,%s) RETURNING id""",
-            (endpoint, raw.decode("utf-8", errors="replace"),
+            (endpoint, raw.decode("utf-8", errors="replace").replace("\x00", "\\u0000"),
              Jsonb(parsed.model_dump(mode="json")) if parsed else None,
              Jsonb(quality.model_dump(mode="json")) if quality else None, status, detail),
         ).fetchone()

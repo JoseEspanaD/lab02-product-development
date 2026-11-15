@@ -6,8 +6,8 @@ Preparación realizada el 2026-11-14. Fuente oficial: instrucciones_lab.pdf,
 7 páginas leídas, incluido el anexo completo. Modelado, API y persistencia implementados por fases.
 Cada fase requiere autorización expresa; no comenzar la siguiente por iniciativa propia.
 
-Estado: PR #1, #2 y #3 integrados. Fase 4 implementada en
-fase-4-airflow-reentrenamiento, pendiente de revisión y aprobación del PR. No iniciar Fase 5.
+Estado: PR #1–#4 integrados. Fase 5 autorizada en fase-5-verificacion-entrega.
+Auditoría integral y correcciones en curso; no crear tag ni hacer merge sin aprobación.
 La terminal requiere elevación para Git, GitHub y descargas; se solicitará
 para cada operación bloqueada. No se han cambiado permisos del sistema.
 
@@ -201,7 +201,7 @@ volúmenes. Límites de memoria/CPU y sin trabajos auxiliares MLflow para operar
 sobre WSL de 5,6 GiB. Ver RESULTADOS_FASE4.md para métricas, condiciones y límites.
 No se comenzó Fase 5 ni se creó tag de entrega.
 
-### Fase 5 — Verificación y entrega (fase-5-entrega)
+### Fase 5 — Verificación y entrega (fase-5-verificacion-entrega)
 
 Simular varios días, datos defectuosos nuevos, observaciones corregidas,
 reentrenamiento, caída de MLflow y reinicio sin borrar volúmenes.

@@ -6,8 +6,9 @@ contrato completo, auditoría, arquitectura y fases. Idioma: español.
 
 ## Alcance actual
 
-Fase 4 autorizada: Airflow y reentrenamiento, en fase-4-airflow-reentrenamiento.
-Fases 1–3 integradas mediante PR #1, #2 y #3. No avanzar a Fase 5 sin autorización.
+Fase 5 autorizada: verificación y entrega, en fase-5-verificacion-entrega.
+Fases 1–4 integradas mediante PR #1, #2, #3 y #4. No hacer merge ni crear
+el tag entrega-lab2 hasta aprobación expresa del usuario.
 Trabajar una fase a la vez. No iniciar fase siguiente sin permiso.
 No delegar a subagentes salvo petición expresa del usuario.
 Priorizar Python sencillo, módulos pequeños y decisiones fáciles de explicar.

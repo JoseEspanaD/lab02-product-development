@@ -144,3 +144,16 @@ def test_execution_result_immutable_and_submission_lock(pg):
     with pg.submission_lock():
         with pg.connect() as conn:
             assert conn.execute('SELECT pg_try_advisory_xact_lock(202602,4) AS locked').fetchone()['locked'] is False
+
+
+@pytest.mark.parametrize('raw', [b'{"extra":"\\u0000"}', b'{"extra":"\\ud800"}', b'{"extra":"\x00"}'])
+def test_invalid_unicode_is_rejected_and_audited(pg, api_data, raw):
+    with TestClient(create_app(api_data, pg, TestModel())) as client:
+        response = client.post('/v1/prediccion', content=raw,
+                               headers={'Content-Type':'application/json'})
+    assert response.status_code == 422, response.text
+    assert response.json()['detail']
+    with pg.connect() as conn:
+        row = conn.execute('SELECT cuerpo_original,status FROM solicitudes').fetchone()
+        assert row['status'] == 422
+        assert '\x00' not in row['cuerpo_original']

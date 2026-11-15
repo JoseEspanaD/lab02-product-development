@@ -30,12 +30,25 @@ def parse_json(raw: bytes):
         result = {}
         for key, value in items:
             if key in result:
-                raise Rejected(f"Campo JSON repetido: {key}")
+                raise Rejected(f"Campo JSON repetido: {ascii(key)}")
             result[key] = value
         return result
 
     try:
-        return json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid_constant)
+        parsed = json.loads(raw, object_pairs_hook=pairs, parse_constant=invalid_constant)
+        def unicode_text(value):
+            if isinstance(value, str):
+                if "\x00" in value or any(0xD800 <= ord(c) <= 0xDFFF for c in value):
+                    raise Rejected("Texto JSON con NUL o Unicode inválido")
+            elif isinstance(value, dict):
+                for key, item in value.items():
+                    unicode_text(key)
+                    unicode_text(item)
+            elif isinstance(value, list):
+                for item in value:
+                    unicode_text(item)
+        unicode_text(parsed)
+        return parsed
     except (ValueError, UnicodeError, RecursionError) as exc:
         raise Rejected("JSON inválido: " + str(exc)[:160]) from exc
 

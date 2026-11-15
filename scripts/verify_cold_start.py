@@ -16,7 +16,13 @@ def main():
     args = parser.parse_args()
     compose = ['docker', 'compose', '--env-file', args.env_file]
     existing = subprocess.check_output(compose+['ps', '-aq'], text=True)
-    if existing.strip():
+    from dotenv import dotenv_values
+    project = dotenv_values(args.env_file).get('COMPOSE_PROJECT_NAME')
+    if not project:
+        raise SystemExit('Definir COMPOSE_PROJECT_NAME explícito para la prueba')
+    volumes = subprocess.check_output(['docker', 'volume', 'ls', '-q', '--filter',
+        'label=com.docker.compose.project='+project], text=True)
+    if existing.strip() or volumes.strip():
         raise SystemExit('Usar proyecto nuevo para afirmar arranque vacío')
     start = time.monotonic()
     subprocess.run(compose+['up','-d','--no-build'], check=True)

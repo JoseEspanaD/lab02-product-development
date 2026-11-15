@@ -309,3 +309,30 @@ tracking/Registry/artefactos y Airflow ejecuta el entrenamiento. Evita consumir
 memoria en funciones ajenas al laboratorio. El límite inicial de 640 MiB causó
 un reinicio; se amplió a 1024 MiB antes de desactivar esos procesos.
 Referencia: [variables oficiales MLflow](https://mlflow.org/docs/latest/api_reference/python_api/mlflow.environment_variables.html).
+
+## Fase 5 — auditoría final
+
+- Se conserva la arquitectura de seis servicios, el modelo y la promoción por costo.
+  No se añade infraestructura. La auditoría contrasta las siete páginas del PDF con
+  pruebas actuales; las cifras históricas se distinguen de nuevas mediciones.
+- Rechazar NUL y sustitutos Unicode aislados en cualquier texto/clave JSON con 422.
+  PostgreSQL text/JSONB no puede representar esos valores; aceptar/ignorar el campo
+  causaba un fallo de persistencia en lugar de un rechazo de contrato. El cuerpo
+  de auditoría representa un byte NUL literal como texto `\u0000`, igual que ya
+  reemplazaba UTF-8 inválido; no se afirma conservación byte a byte para esos casos.
+  Se conserva el rechazo y no se inventa un valor comercial reparado.
+- Un arranque solo se considera vacío si no existen contenedores ni volúmenes
+  etiquetados con el proyecto. Se exige promoción positiva en el ensayo real;
+  terminar un DAG con éxito sin promover no demuestra recarga de versión.
+- El README usa Docker y la biblioteca estándar para generar claves, frente a
+  depender de .venv/cryptography en un clon recién obtenido. El producto arranca
+  sin Python instalado en el host. pypdf 6.1.3 se fija separadamente en
+  requirements-auditoria.txt solo para releer el documento docente local.
+- Los ensayos usan un clon de la rama, credenciales nuevas y volúmenes propios.
+  Se detiene temporalmente la copia previa del laboratorio para limitar RAM;
+  no se borran sus volúmenes. Las ventas sintéticas y cambios de escala son una
+  prueba operativa, no evidencia de mejora en el período oculto. La comparación
+  predictiva se reproduce dos veces con los mismos datos reales retenidos.
+- La ventana conservadora de validación de 60 días permanece: sin una ventana
+  posterior a la selección del vigente no hay promoción, con motivo explícito.
+  No se promete adaptación inmediata ni mejora garantizada ante cualquier cambio.

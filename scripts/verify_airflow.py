@@ -69,6 +69,7 @@ def main():
     result['run_seconds_including_submission'] = time.monotonic()-start
     result['run_id'], result['run_result'] = run_id, status()
     assert status()['estado'] == 'exitoso', status()
+    assert status()['promovido'] is True, status()
     result['reload_after_terminal_seconds'] = wait_for(lambda: api('/modelo').json()['version'] == status()['version'])
     save()
     payload['fecha'] = '2026-03-02'
