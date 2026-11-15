@@ -87,7 +87,10 @@ def create_app(data, repository, model, administration=None):
 
     @app.get("/admin/reentrenar/{id}", response_model=RunStatus, response_model_exclude_none=True)
     def run_status(id: str):
-        status = service.administration.status(id)
+        try:
+            status = service.administration.status(id)
+        except Unavailable as exc:
+            raise HTTPException(503, detail=str(exc)) from exc
         if status is None:
             raise HTTPException(404, detail="Ejecución desconocida")
         return status
@@ -137,10 +140,14 @@ def local_app():
 
 def registered_app():
     from .registry import Registry
-    from .registered_provider import RegisteredModelProvider, RegistryAdministration
+    from .registered_provider import RegisteredModelProvider
     repository = PostgresRepository(os.environ["DATABASE_URL"])
     data = repository.load_data()
     registry = Registry(os.environ["MLFLOW_TRACKING_URI"], os.environ.get("MODEL_NAME", "novamercado"),
                         os.environ.get("MODEL_ALIAS", "champion"))
     provider = RegisteredModelProvider(data, registry, os.environ.get("MODEL_CACHE_DIR", "/cache"))
-    return create_app(data, repository, provider, RegistryAdministration(provider))
+    from .airflow_client import AirflowAdministration
+    administration = AirflowAdministration(provider, repository,
+        os.environ.get("AIRFLOW_URL", "http://airflow:8080"),
+        os.environ["AIRFLOW_USERNAME"], os.environ["AIRFLOW_PASSWORD"])
+    return create_app(data, repository, provider, administration)

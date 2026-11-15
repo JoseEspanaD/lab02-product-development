@@ -131,3 +131,16 @@ def test_published_snapshot_is_idempotent_and_lock_is_exclusive(pg, api_data):
     api_data.hashes["historico_ventas.csv"] = "modified"
     with pytest.raises(ValueError, match="distintos"):
         pg.seed_data(api_data)
+
+
+def test_execution_result_immutable_and_submission_lock(pg):
+    pg.save_execution('run', '1')
+    pg.save_execution('run', '2')
+    assert pg.execution('run')['version_inicial'] == '1'
+    result = {'estado': 'exitoso', 'promovido': True, 'version': '2', 'motivo': 'mejora'}
+    pg.finish_execution('run', result)
+    pg.finish_execution('run', {'estado': 'fallido'})
+    assert pg.execution('run')['resultado'] == result
+    with pg.submission_lock():
+        with pg.connect() as conn:
+            assert conn.execute('SELECT pg_try_advisory_xact_lock(202602,4) AS locked').fetchone()['locked'] is False

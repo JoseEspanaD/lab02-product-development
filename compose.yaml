@@ -1,8 +1,7 @@
 name: ${COMPOSE_PROJECT_NAME:-lab02}
 
 x-app: &app
-  image: lab02-product-development:0.3.0
-  build: .
+  image: lab02-product-development:0.4.0
   environment: &environment
     DATABASE_URL: postgresql://${POSTGRES_USER:-lab02}:${POSTGRES_PASSWORD:?Definir POSTGRES_PASSWORD en .env}@postgres:5432/${POSTGRES_DB:-lab02}
     MLFLOW_TRACKING_URI: http://mlflow:5000
@@ -13,10 +12,16 @@ x-app: &app
     MLFLOW_ARTIFACT_UPLOAD_DOWNLOAD_TIMEOUT: "10"
     MLFLOW_ENABLE_ARTIFACTS_PROGRESS_BAR: "false"
     MLFLOW_ALLOW_PICKLE_DESERIALIZATION: "true"
+    OMP_NUM_THREADS: "1"
+    OPENBLAS_NUM_THREADS: "1"
+    MKL_NUM_THREADS: "1"
     SOURCE_REVISION: ${SOURCE_REVISION:-no-proporcionada}
 
 services:
   postgres:
+    mem_limit: 256m
+    cpus: 0.5
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=50"]
     image: postgres:16.11
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-lab02}
@@ -32,6 +37,12 @@ services:
     restart: unless-stopped
 
   mlflow:
+    mem_limit: 1024m
+    cpus: 1
+    environment:
+      MLFLOW_SERVER_ENABLE_JOB_EXECUTION: "false"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
     image: ghcr.io/mlflow/mlflow:v3.17.2
     command:
       - mlflow
@@ -62,6 +73,8 @@ services:
 
   bootstrap:
     <<: *app
+    mem_limit: 768m
+    cpus: 1
     command: ["python", "-m", "novamercado.bootstrap"]
     environment:
       <<: *environment
@@ -78,9 +91,15 @@ services:
 
   api:
     <<: *app
+    build: .
+    mem_limit: 512m
+    cpus: 1
     environment:
       <<: *environment
       MODEL_CACHE_DIR: /cache
+      AIRFLOW_URL: http://airflow:8080
+      AIRFLOW_USERNAME: ${AIRFLOW_USERNAME:-lab02}
+      AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:?Definir AIRFLOW_PASSWORD}
     volumes:
       - model_cache:/cache
     ports:
@@ -98,9 +117,85 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-# Airflow y su PostgreSQL independiente se incorporarán en Fase 4.
-# No compartir postgres_data ni el DSN del producto con Airflow.
+  airflow-db:
+    mem_limit: 256m
+    cpus: 0.5
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=50"]
+    image: postgres:16.11
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_DB: airflow
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD:?Definir AIRFLOW_DB_PASSWORD}
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow", "-d", "airflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  airflow:
+    mem_limit: 1792m
+    cpus: 1.5
+    image: lab02-airflow:2.11.1-0.4.0
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+      additional_contexts:
+        product: service:api
+    environment:
+      <<: *environment
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_DB_PASSWORD:?Definir AIRFLOW_DB_PASSWORD}@airflow-db/airflow
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?Definir AIRFLOW_FERNET_KEY}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?Definir AIRFLOW_SECRET_KEY}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: "10"
+      AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "10"
+      AIRFLOW__CORE__PARALLELISM: "1"
+      AIRFLOW__SCHEDULER__PARSING_PROCESSES: "1"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_POOL_SIZE: "5"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_MAX_OVERFLOW: "0"
+      AIRFLOW__WEBSERVER__WORKERS: "1"
+      AIRFLOW_USERNAME: ${AIRFLOW_USERNAME:-lab02}
+      AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:?Definir AIRFLOW_PASSWORD}
+    command:
+      - bash
+      - -ec
+      - |
+        airflow db migrate
+        if ! airflow users list --output json | python -c 'import json,os,sys; sys.exit(not any(u["username"]==os.environ["AIRFLOW_USERNAME"] for u in json.load(sys.stdin)))'; then
+          airflow users create --username "$$AIRFLOW_USERNAME" --password "$$AIRFLOW_PASSWORD" --firstname Lab --lastname Dos --role Admin --email lab02@example.invalid
+        fi
+        airflow scheduler &
+        scheduler_pid=$$!
+        airflow webserver &
+        webserver_pid=$$!
+        trap 'kill -TERM $$scheduler_pid $$webserver_pid; wait' TERM INT EXIT
+        wait -n $$scheduler_pid $$webserver_pid
+        exit 1
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+      bootstrap:
+        condition: service_completed_successfully
+    volumes:
+      - airflow_logs:/opt/airflow/logs
+    ports:
+      - "127.0.0.1:${AIRFLOW_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json,urllib.request; h=json.load(urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3)); assert all(h[k]['status']=='healthy' for k in ['scheduler','metadatabase'])"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   mlflow_data:
   model_cache:
+  airflow_db_data:
+  airflow_logs:

@@ -1,0 +1,6 @@
+FROM product AS product_runtime
+FROM apache/airflow:2.11.1-python3.12
+# Runtime de ML idéntico al de la API, aislado del Python de Airflow.
+COPY --from=product_runtime /usr/local /opt/product
+COPY --from=product_runtime /app /opt/product-app
+COPY dags /opt/airflow/dags
