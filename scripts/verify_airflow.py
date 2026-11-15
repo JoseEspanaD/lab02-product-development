@@ -65,7 +65,14 @@ def main():
     run_id = run.json()['id']
     duplicate = api('/admin/reentrenar', {}); assert duplicate.json()['id'] == run_id
     status = lambda: api('/admin/reentrenar/'+run_id).json()
-    result['dag_poll_seconds'] = wait_for(lambda: status()['estado'] != 'en_curso', 600)
+    inference_statuses = []
+    probe = {**payload, 'fecha':'2026-03-02'}
+    def finished():
+        inference_statuses.append(api('/v1/prediccion', probe).status_code)
+        return status()['estado'] != 'en_curso'
+    result['dag_poll_seconds'] = wait_for(finished, 600)
+    result['inference_statuses_during_training'] = inference_statuses
+    assert inference_statuses and all(code == 200 for code in inference_statuses)
     result['run_seconds_including_submission'] = time.monotonic()-start
     result['run_id'], result['run_result'] = run_id, status()
     assert status()['estado'] == 'exitoso', status()

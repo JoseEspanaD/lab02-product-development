@@ -336,3 +336,8 @@ Referencia: [variables oficiales MLflow](https://mlflow.org/docs/latest/api_refe
 - La ventana conservadora de validación de 60 días permanece: sin una ventana
   posterior a la selección del vigente no hay promoción, con motivo explícito.
   No se promete adaptación inmediata ni mejora garantizada ante cualquier cambio.
+- La versión inicial de una ejecución se confirma desde el alias real bajo el
+  lock del trabajo, antes de evaluar; puede diferir de la versión aún cargada
+  por la API durante sus diez segundos de refresco. Así el finalizador conserva
+  el vigente confirmado ante un fallo posterior. Un resultado terminal no cambia.
+  Finalizar sin registro de ejecución es un error, nunca un DAG exitoso vacío.

@@ -40,6 +40,7 @@ def execute(run_id, repository, registry):
         if current is None:
             raise RuntimeError('No existe champion')
         repository.save_execution(run_id, str(current.version))
+        repository.record_incumbent(run_id, str(current.version))
         # Recuperar registro completado antes de una interrupción, sin repetir ajuste.
         versions = [v for v in registry.versions() if v.tags.get('execution_id') == run_id]
         with tempfile.TemporaryDirectory() as directory:
@@ -90,7 +91,9 @@ def main():
             repository.finish_execution(run_id, {'estado': 'fallido', 'promovido': False,
                 'version': saved['version_inicial'], 'motivo': 'Entrenamiento fallido; consultar logs de Airflow'})
             raise SystemExit(1)
-        if saved and saved['resultado'] and saved['resultado']['estado'] == 'fallido':
+        if not saved:
+            raise SystemExit(1)
+        if saved['resultado'] and saved['resultado']['estado'] == 'fallido':
             raise SystemExit(1)
     else:
         execute(run_id, repository, registry)

@@ -137,10 +137,14 @@ def test_execution_result_immutable_and_submission_lock(pg):
     pg.save_execution('run', '1')
     pg.save_execution('run', '2')
     assert pg.execution('run')['version_inicial'] == '1'
+    pg.record_incumbent('run', '2')
+    assert pg.execution('run')['version_inicial'] == '2'
     result = {'estado': 'exitoso', 'promovido': True, 'version': '2', 'motivo': 'mejora'}
     pg.finish_execution('run', result)
     pg.finish_execution('run', {'estado': 'fallido'})
     assert pg.execution('run')['resultado'] == result
+    pg.record_incumbent('run', '3')
+    assert pg.execution('run')['version_inicial'] == '2'
     with pg.submission_lock():
         with pg.connect() as conn:
             assert conn.execute('SELECT pg_try_advisory_xact_lock(202602,4) AS locked').fetchone()['locked'] is False

@@ -135,7 +135,7 @@ def test_candidate_worse_or_failed_never_promotes(monkeypatch, history, stores, 
     repo.execution.return_value = None
     repo.load_data.return_value = Data(history, stores, pd.DataFrame({'familia_id':['pan']}), holidays, costs, {})
     repo.observations_before.return_value = history.iloc[:1].copy()
-    registry.current.return_value = SimpleNamespace(version='1')
+    registry.current.return_value = SimpleNamespace(version='2')
     registry.versions.return_value = []
     registry.load.return_value = SimpleNamespace(available_from='2023-01-01')
     registry.register.return_value = SimpleNamespace(version='2')
@@ -148,6 +148,34 @@ def test_candidate_worse_or_failed_never_promotes(monkeypatch, history, stores, 
         registry.register.assert_not_called()
     else:
         result=execute('run',repo,registry)
-        assert result['version']=='1' and result['promovido'] is False
+        assert result['version']=='2' and result['promovido'] is False
         registry.register.assert_called_once()
     registry.promote.assert_not_called()
+
+
+def test_failure_records_registry_incumbent_even_if_api_version_is_stale(monkeypatch):
+    repo, registry = Mock(), Mock()
+    repo.model_lock.return_value = nullcontext()
+    repo.execution.return_value = {'version_inicial':'1', 'resultado':None}
+    registry.current.return_value = SimpleNamespace(version='2')
+    registry.versions.side_effect = RuntimeError('fallo posterior')
+    with pytest.raises(RuntimeError, match='fallo posterior'):
+        execute('run', repo, registry)
+    repo.record_incumbent.assert_called_once_with('run','2')
+    registry.promote.assert_not_called()
+
+
+def test_finalizer_without_execution_cannot_report_success(monkeypatch):
+    import sys
+    from novamercado import retraining
+    repo = Mock()
+    repo.execution.return_value = None
+    monkeypatch.setenv('DATABASE_URL', 'unused')
+    monkeypatch.setenv('MLFLOW_TRACKING_URI', 'http://unused')
+    monkeypatch.setenv('RETRAIN_RUN_ID', 'run')
+    monkeypatch.setattr(sys, 'argv', ['retraining','finalize'])
+    monkeypatch.setattr(retraining, 'PostgresRepository', lambda _:repo)
+    monkeypatch.setattr(retraining, 'Registry', Mock())
+    with pytest.raises(SystemExit) as exc:
+        retraining.main()
+    assert exc.value.code == 1

@@ -134,6 +134,13 @@ class PostgresRepository:
             conn.execute("INSERT INTO ejecuciones VALUES (%s,%s,NULL) ON CONFLICT (id) DO NOTHING",
                          (run_id, version))
 
+    def record_incumbent(self, run_id, version):
+        # La API puede seguir cargando la versión anterior durante el refresco.
+        # El escritor del alias confirma el vigente real bajo model_lock.
+        with self.connect() as conn:
+            conn.execute("UPDATE ejecuciones SET version_inicial=%s WHERE id=%s AND resultado IS NULL",
+                         (version, run_id))
+
     def execution(self, run_id):
         with self.connect() as conn:
             return conn.execute("SELECT * FROM ejecuciones WHERE id=%s", (run_id,)).fetchone()
