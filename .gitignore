@@ -1,0 +1,52 @@
+# Entorno y secretos
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.aws/
+.codex/
+.agents/
+credentials/
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+.netrc
+# Datos originales y documentos docentes
+data/
+instrucciones_lab.pdf
+# Python y herramientas
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+# Salidas de ejecución; evidencias públicas solo sanitizadas y revisadas
+artifacts/
+models/
+mlruns/
+mlartifacts/
+logs/
+airflow_home/
+postgres_data/
+outputs/
+reports/generated/
+*.log
+*.sqlite*
+*.db
+*.dump
+*.pkl
+*.joblib
+*.parquet
+# Editor y SO
+.idea/
+.vscode/
+.DS_Store
+*.swp
