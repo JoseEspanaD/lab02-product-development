@@ -41,7 +41,8 @@ def build_features(history: pd.DataFrame, requests: pd.DataFrame,
         past = groups.get(key, h.iloc[:0])
         opening = targets.fecha_apertura.iloc[0]
         # No necesitamos ventas posteriores a la última solicitud del grupo.
-        past = past[(past.fecha >= opening) & (past.fecha < targets.fecha.max())]
+        earliest = max(opening, targets.fecha.min() - pd.Timedelta(days=28))
+        past = past[(past.fecha >= earliest) & (past.fecha < targets.fecha.max())]
         start = min(targets.fecha.min(), past.fecha.min()) if len(past) else targets.fecha.min()
         index = pd.date_range(start, targets.fecha.max(), freq="D")
         sales = past.set_index("fecha").ventas.reindex(index).astype(float)

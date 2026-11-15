@@ -6,8 +6,8 @@ contrato completo, auditoría, arquitectura y fases. Idioma: español.
 
 ## Alcance actual
 
-Fase 1 autorizada: modelado y validación temporal, en fase-1-modelado.
-No avanzar a la Fase 2 sin autorización expresa del usuario.
+Fase 2 autorizada: API, limpieza y PostgreSQL, en fase-2-api-persistencia.
+Fase 1 integrada a main mediante PR #1. No avanzar a la Fase 3 sin autorización.
 Trabajar una fase a la vez. No iniciar fase siguiente sin permiso.
 No delegar a subagentes salvo petición expresa del usuario.
 Priorizar Python sencillo, módulos pequeños y decisiones fáciles de explicar.
