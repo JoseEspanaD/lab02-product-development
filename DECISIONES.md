@@ -97,3 +97,83 @@ pruebas se consolidarán en la fase autorizada; no constituyen código implement
 
 Las decisiones de políticas de entradas y promoción de modelos de las secciones
 anteriores siguen siendo propuestas para fases posteriores; no se implementaron.
+
+## Fase 2 — API, limpieza y persistencia implementadas
+
+Esta sección consolida las políticas implementadas y prevalece sobre propuestas
+iniciales de las fases posteriores. No se implementaron Registry, DAG ni Compose.
+
+- **Contrato:** modelos Pydantic de entradas canónicas y respuestas; FastAPI expone
+  los seis endpoints exactos. La limpieza vive en cleaning.py; API delega a Service.
+  OpenAPI incluye los cuerpos canónicos aunque primero se recibe el cuerpo crudo
+  para auditar también JSON inválido, claves repetidas y rechazos.
+- **E01–E04:** reparar tienda con dígitos o prefijo T/t, nombre/ID de familia
+  normalizado sin tildes/mayúsculas/espacios, promociones textuales o decimales
+  integrales, DD/MM/AAAA e ISO exactamente a medianoche sin zona. No interpretar
+  horas distintas ni convertir zonas horarias suponiendo un día comercial.
+- **E05–E07:** predicción requiere todas las familias del catálogo (las diez tiendas
+  del dataset venden las doce). Duplicado idéntico se elimina con corrección;
+  distinto se rechaza. Alias tienda -> tienda_id solo si no se envían ambos;
+  ambos presentes se rechazan aunque sus valores coincidan. Otros obligatorios
+  ausentes se rechazan. Campos adicionales se ignoran con advertencia explícita.
+- **E08–E10:** rechazar ventas negativas y booleanos; observación idéntica produce
+  200 y cero cambios. Números de texto con coma y una/dos cifras decimales se
+  reparan; tres cifras tras coma, miles o formatos ambiguos se rechazan. Texto
+  decimal con punto se admite. Ventas fraccionarias finitas no negativas se
+  admiten: el anexo no exige que sean enteras. Promociones sí deben ser enteras.
+- **Dominios generales:** rechazar JSON no objeto, lista vacía, campos repetidos,
+  NaN/inf, referencias desconocidas, fechas inválidas/preapertura, tipos incorrectos
+  y valores negativos. Guardarraíl numérico técnico de 1e15 para entradas; no se
+  recortan valores ni se impone el máximo observado en el histórico. El límite
+  evita cantidades no representables con seguridad en el cálculo/almacenamiento.
+  No se utiliza la fecha del sistema como criterio de validez.
+- **Observaciones parciales:** se aceptan subconjuntos no vacíos de familias
+  conocidas, sin completar ventas ausentes. Una solicitud es atómica: cualquier
+  elemento inválido rechaza todo el envío. Permite correcciones puntuales sin
+  reemplazar las demás familias.
+- **Auditoría:** solicitudes guarda texto original, cuerpo canónico, calidad con
+  campo/acción/detalle, HTTP y motivo de rechazo. Correcciones están en JSONB
+  dentro de la misma solicitud, sin una tabla adicional. Predicciones almacena
+  cada familia, promociones, resultados y versión, vinculada a la solicitud.
+  No se deduplican pronósticos: cada petición aceptada crea un registro nuevo.
+- **Idempotencia SQL:** observaciones tiene PK (fecha, tienda_id, familia_id).
+  INSERT ON CONFLICT DO UPDATE ... WHERE ventas IS DISTINCT FROM ... RETURNING
+  cuenta solo filas nuevas o modificadas. Transacción única con su auditoría;
+  orden de familias estable evita inversión de bloqueos entre envíos concurrentes.
+  Los reintentos se auditan aunque no cambien las observaciones.
+- **Acceso SQL:** psycopg parametrizado sin ORM; conexiones cortas, timeout de
+  conexión 2 s y consultas 5 s. PostgreSQL es obligatorio, sin fallback a SQLite.
+  El esquema del producto no usa la DB de Airflow. Catálogos/histórico siguen en
+  CSV read-only durante esta fase; carga persistente/bootstrap corresponde a Fase 3.
+- **Historia y promociones:** para inferencia se consulta solo observaciones con
+  fecha anterior; prevalecen sobre histórico para esa clave. Promociones originales
+  se conservan por pronóstico; la consulta recupera la del mayor solicitud_id por
+  fecha/tienda/familia. Sin pronóstico previo queda NULL, nunca cero inventado.
+  La Fase 4 decidirá qué filas sin promociones excluir del entrenamiento.
+- **ML local real:** adaptador LocalModelProvider reutiliza SalesRegressor,
+  build_features y CostCalibrator. Al atender fechas dentro del histórico entrena
+  y calibra solo con fechas estrictamente anteriores; para las posteriores usa
+  el corte fin del histórico +1. Calibración separada de 60 días, no reusa test
+  para ajustar hiperparámetros. Mantiene un bundle en memoria protegido con lock.
+  Los últimos 28 días bastan para las features de una solicitud; se descarta
+  historia anterior innecesaria antes de reindexar, sin modificar las fórmulas.
+- **Versión y disponibilidad:** alias local y versión local-FECHA-HASH describen el
+  modelo cargado, sin fingir Registry. /modelo devuelve 503 sin modelo, al igual
+  que /health. Con modelo y DB pero sin MLflow/Airflow, health devuelve 200
+  degradado explicando esas dependencias. Errores SQL devuelven 503 sin revelar
+  credenciales, DSN ni SQL. Si DB está caída no puede persistirse esa petición:
+  se informa fallo y no se responde con un éxito sin auditoría.
+- **Administración:** interfaces inyectables para modelo y administración.
+  Adaptador desconectado: POST reentrenar 503 y GET ID desconocido 404. El contrato
+  contempla 202/en_curso/exitoso/fallido, verificado con dobles explícitos; la app
+  local no crea ejecuciones ni promociones ficticias.
+- **Pruebas:** contratos con repositorio en memoria explícito y modelos de prueba;
+  integración SQL con PostgreSQL 16.11 en contenedor/volumen exclusivo. También se
+  verificó la API con modelo real, ejemplos del docente y DB; resultados agregados
+  y límites en RESULTADOS_FASE2.md. Python existente 3.14.4, sin cambiar versión.
+  Starlette instalado utiliza httpx2 para TestClient; se retiró httpx obsoleto del
+  entorno y se fijaron las dependencias realmente utilizadas en requirements.txt.
+
+Referencias de implementación: [validación y errores de FastAPI](https://fastapi.tiangolo.com/tutorial/handling-errors/),
+[transacciones psycopg](https://www.psycopg.org/psycopg3/docs/basic/transactions.html)
+y [adaptación JSONB](https://www.psycopg.org/psycopg3/docs/basic/adapt.html).

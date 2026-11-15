@@ -3,11 +3,11 @@
 ## Alcance y estado
 
 Preparación realizada el 2026-11-14. Fuente oficial: instrucciones_lab.pdf,
-7 páginas leídas, incluido el anexo completo. Solo el modelado está implementado.
+7 páginas leídas, incluido el anexo completo. Modelado, API y persistencia implementados por fases.
 Cada fase requiere autorización expresa; no comenzar la siguiente por iniciativa propia.
 
-Estado: repositorio público configurado y main actualizado. Fase 1 implementada
-en fase-1-modelado, pendiente de revisión y aprobación de merge. No iniciar Fase 2.
+Estado: repositorio público configurado y main actualizado. PR #1 integrado. Fase 2 implementada en fase-2-api-persistencia, pendiente de
+revisión y aprobación de merge. No iniciar Fase 3.
 La terminal requiere elevación para Git, GitHub y descargas; se solicitará
 para cada operación bloqueada. No se han cambiado permisos del sistema.
 
@@ -143,12 +143,22 @@ con advertencias tratadas como errores. Verificación Git/push/PR al cerrar fase
 No se implementó ningún componente de la Fase 2 ni de infraestructura.
 
 
-### Fase 2 — API y persistencia (fase-2-api)
+### Fase 2 — API y persistencia (fase-2-api-persistencia)
 
 Contrato completo, normalización fuera de endpoints, PostgreSQL e idempotencia.
 Usar adaptadores falsos del modelo/administración en unit tests; integración con DB.
 Verificar todos los códigos y campos, E01–E10 y errores adicionales, concurrencia
 al reenviar observaciones y conteos nuevos/modificados. Guardar promociones.
+
+Progreso: seis endpoints del anexo, modelos Pydantic, limpieza independiente,
+inferencia con modelo real de Fase 1 y repositorio PostgreSQL transaccional.
+Solicitudes originales/limpias y calidad auditadas; predicciones repetidas y
+promociones preservadas; observaciones idempotentes con upsert y conteo de cambios.
+80 pruebas aprobadas con PostgreSQL real y sin MLflow/Airflow. Ejemplos E01–E10
+verificados; inferencia real dentro y después del histórico. No se publica un
+Registry ni un DAG ficticio: administración devuelve 503/404 hasta conectarlos.
+Prueba de reinicio del PostgreSQL de pruebas y detalles en RESULTADOS_FASE2.md.
+
 
 ### Fase 3 — MLflow y contenedores (fase-3-mlflow-docker)
 
