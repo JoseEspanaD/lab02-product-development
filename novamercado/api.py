@@ -1,6 +1,7 @@
 """FastAPI: adaptadores de persistencia, modelo y administración inyectables."""
 
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
@@ -52,7 +53,16 @@ class Service:
 
 def create_app(data, repository, model, administration=None):
     service = Service(data, repository, model, administration or DisconnectedAdministration())
-    app = FastAPI(title="NovaMercado", version="0.2.0")
+    @asynccontextmanager
+    async def lifespan(app):
+        if hasattr(model, "start"):
+            model.start()
+        try:
+            yield
+        finally:
+            if hasattr(model, "stop"):
+                await run_in_threadpool(model.stop)
+    app = FastAPI(title="NovaMercado", version="0.3.0", lifespan=lifespan)
     app.state.service = service
 
     @app.exception_handler(psycopg.Error)
@@ -123,3 +133,14 @@ def local_app():
     model = LocalModelProvider(data)
     model.prepare(data.history.fecha.max() + pd.Timedelta(days=1))
     return create_app(data, repository, model)
+
+
+def registered_app():
+    from .registry import Registry
+    from .registered_provider import RegisteredModelProvider, RegistryAdministration
+    repository = PostgresRepository(os.environ["DATABASE_URL"])
+    data = repository.load_data()
+    registry = Registry(os.environ["MLFLOW_TRACKING_URI"], os.environ.get("MODEL_NAME", "novamercado"),
+                        os.environ.get("MODEL_ALIAS", "champion"))
+    provider = RegisteredModelProvider(data, registry, os.environ.get("MODEL_CACHE_DIR", "/cache"))
+    return create_app(data, repository, provider, RegistryAdministration(provider))
