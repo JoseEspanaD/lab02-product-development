@@ -171,7 +171,9 @@ services:
         fi
         airflow scheduler &
         scheduler_pid=$$!
-        airflow webserver &
+        # Un nombre nuevo evita confundir un PID obsoleto con otro proceso tras start.
+        webserver_pid_file=/tmp/airflow-webserver-$$(cat /proc/sys/kernel/random/uuid).pid
+        airflow webserver --pid "$$webserver_pid_file" &
         webserver_pid=$$!
         trap 'kill -TERM $$scheduler_pid $$webserver_pid; wait' TERM INT EXIT
         wait -n $$scheduler_pid $$webserver_pid

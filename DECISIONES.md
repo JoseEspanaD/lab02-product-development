@@ -214,7 +214,9 @@ y [adaptación JSONB](https://www.psycopg.org/psycopg3/docs/basic/adapt.html).
 - **Promoción:** entrenamiento y registro bajo lock de sesión PostgreSQL común a
   todos los escritores. Se guarda el run, métricas, linaje y versión; se descarga
   y valida el artefacto; solo entonces se cambia champion. No se realizan escrituras
-  ni consultas de auditoría posteriores al alias. Cerrar la sesión libera el lock.
+  ni consultas posteriores dentro de Registry.promote. En Fase 4 el DAG guarda
+  después su resultado SQL, recuperable por execution_id si se interrumpe. Cerrar
+  la sesión libera el lock.
   Errores previos, candidato peor o fallo de promoción conservan el vigente.
   La API además rechaza un alias apuntado manualmente a una versión no elegible.
 - **Bootstrap:** carga atómica de catálogos y 83 052 filas a PostgreSQL con hashes.
@@ -341,3 +343,9 @@ Referencia: [variables oficiales MLflow](https://mlflow.org/docs/latest/api_refe
   por la API durante sus diez segundos de refresco. Así el finalizador conserva
   el vigente confirmado ante un fallo posterior. Un resultado terminal no cambia.
   Finalizar sin registro de ejecución es un error, nunca un DAG exitoso vacío.
+
+- La prueba real de stop/start detectó un PID obsoleto del webserver de Airflow:
+  el número había sido reutilizado por otro proceso y Gunicorn rechazaba iniciar.
+  Cada arranque asigna un archivo PID temporal con UUID nuevo mediante --pid.
+  No se borran archivos ni volúmenes, y no se altera la arquitectura. Se repite
+  la integración desde un proyecto nuevo; el ensayo fallido no se cuenta aprobado.
