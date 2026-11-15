@@ -214,7 +214,9 @@ y [adaptación JSONB](https://www.psycopg.org/psycopg3/docs/basic/adapt.html).
 - **Promoción:** entrenamiento y registro bajo lock de sesión PostgreSQL común a
   todos los escritores. Se guarda el run, métricas, linaje y versión; se descarga
   y valida el artefacto; solo entonces se cambia champion. No se realizan escrituras
-  ni consultas de auditoría posteriores al alias. Cerrar la sesión libera el lock.
+  ni consultas posteriores dentro de Registry.promote. En Fase 4 el DAG guarda
+  después su resultado SQL, recuperable por execution_id si se interrumpe. Cerrar
+  la sesión libera el lock.
   Errores previos, candidato peor o fallo de promoción conservan el vigente.
   La API además rechaza un alias apuntado manualmente a una versión no elegible.
 - **Bootstrap:** carga atómica de catálogos y 83 052 filas a PostgreSQL con hashes.
@@ -309,3 +311,41 @@ tracking/Registry/artefactos y Airflow ejecuta el entrenamiento. Evita consumir
 memoria en funciones ajenas al laboratorio. El límite inicial de 640 MiB causó
 un reinicio; se amplió a 1024 MiB antes de desactivar esos procesos.
 Referencia: [variables oficiales MLflow](https://mlflow.org/docs/latest/api_reference/python_api/mlflow.environment_variables.html).
+
+## Fase 5 — auditoría final
+
+- Se conserva la arquitectura de seis servicios, el modelo y la promoción por costo.
+  No se añade infraestructura. La auditoría contrasta las siete páginas del PDF con
+  pruebas actuales; las cifras históricas se distinguen de nuevas mediciones.
+- Rechazar NUL y sustitutos Unicode aislados en cualquier texto/clave JSON con 422.
+  PostgreSQL text/JSONB no puede representar esos valores; aceptar/ignorar el campo
+  causaba un fallo de persistencia en lugar de un rechazo de contrato. El cuerpo
+  de auditoría representa un byte NUL literal como texto `\u0000`, igual que ya
+  reemplazaba UTF-8 inválido; no se afirma conservación byte a byte para esos casos.
+  Se conserva el rechazo y no se inventa un valor comercial reparado.
+- Un arranque solo se considera vacío si no existen contenedores ni volúmenes
+  etiquetados con el proyecto. Se exige promoción positiva en el ensayo real;
+  terminar un DAG con éxito sin promover no demuestra recarga de versión.
+- El README usa Docker y la biblioteca estándar para generar claves, frente a
+  depender de .venv/cryptography en un clon recién obtenido. El producto arranca
+  sin Python instalado en el host. pypdf 6.1.3 se fija separadamente en
+  requirements-auditoria.txt solo para releer el documento docente local.
+- Los ensayos usan un clon de la rama, credenciales nuevas y volúmenes propios.
+  Se detiene temporalmente la copia previa del laboratorio para limitar RAM;
+  no se borran sus volúmenes. Las ventas sintéticas y cambios de escala son una
+  prueba operativa, no evidencia de mejora en el período oculto. La comparación
+  predictiva se reproduce dos veces con los mismos datos reales retenidos.
+- La ventana conservadora de validación de 60 días permanece: sin una ventana
+  posterior a la selección del vigente no hay promoción, con motivo explícito.
+  No se promete adaptación inmediata ni mejora garantizada ante cualquier cambio.
+- La versión inicial de una ejecución se confirma desde el alias real bajo el
+  lock del trabajo, antes de evaluar; puede diferir de la versión aún cargada
+  por la API durante sus diez segundos de refresco. Así el finalizador conserva
+  el vigente confirmado ante un fallo posterior. Un resultado terminal no cambia.
+  Finalizar sin registro de ejecución es un error, nunca un DAG exitoso vacío.
+
+- La prueba real de stop/start detectó un PID obsoleto del webserver de Airflow:
+  el número había sido reutilizado por otro proceso y Gunicorn rechazaba iniciar.
+  Cada arranque asigna un archivo PID temporal con UUID nuevo mediante --pid.
+  No se borran archivos ni volúmenes, y no se altera la arquitectura. Se repite
+  la integración desde un proyecto nuevo; el ensayo fallido no se cuenta aprobado.

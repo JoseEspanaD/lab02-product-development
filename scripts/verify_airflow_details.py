@@ -12,6 +12,7 @@ import requests
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--env-file', required=True)
+    parser.add_argument('--output', default='outputs/fase4_detalles.json')
     args = parser.parse_args()
     env = dotenv_values(args.env_file)
     airflow = 'http://127.0.0.1:'+env.get('AIRFLOW_PORT','8080')
@@ -64,7 +65,7 @@ def main():
             'model_run_id':version['run_id'],'metrics':metrics,
             'operational_lineage':{k:params[k] for k in ['observations_used','observations_received','observations_missing_promotions','snapshot_sha256','validation_end']},
             'dataset_inputs':6,'airflow_db_recovery_seconds':time.monotonic()-start}
-    Path('outputs/fase4_detalles.json').write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n')
+    Path(args.output).write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n')
     print(json.dumps(result,indent=2,ensure_ascii=False))
 
 

@@ -1,0 +1,2 @@
+# Solo para releer el PDF local durante la auditoría; no se instala en imágenes.
+pypdf==6.1.3
