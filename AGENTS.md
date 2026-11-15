@@ -6,8 +6,8 @@ contrato completo, auditoría, arquitectura y fases. Idioma: español.
 
 ## Alcance actual
 
-Fase 2 autorizada: API, limpieza y PostgreSQL, en fase-2-api-persistencia.
-Fase 1 integrada a main mediante PR #1. No avanzar a la Fase 3 sin autorización.
+Fase 3 autorizada: MLflow, Compose y bootstrap, en fase-3-mlflow-docker.
+Fases 1 y 2 integradas mediante PR #1 y #2. No avanzar a Fase 4 sin autorización.
 Trabajar una fase a la vez. No iniciar fase siguiente sin permiso.
 No delegar a subagentes salvo petición expresa del usuario.
 Priorizar Python sencillo, módulos pequeños y decisiones fáciles de explicar.
@@ -58,3 +58,20 @@ No presentar comandos propuestos como ejecutados ni pruebas pendientes como apro
 Documentar decisiones, alternativas y justificaciones en DECISIONES.md.
 Si hay bloqueos de permisos o autenticación, informarlos; no eludir montajes
 protegidos ni solicitar tokens por chat. No incluir credenciales en salidas.
+
+
+## Operación desde Fase 3
+
+Compose: api, postgres del producto, mlflow y bootstrap finito. Airflow pendiente;
+health debe reflejarlo como degradado, nunca declarar ok sin todas las dependencias.
+Modelo novamercado con alias champion. Todo escritor de alias debe usar
+PostgresRepository.model_lock, comparar costo con baseline/vigente en la misma
+ventana futura y validar el artefacto antes de promover. No promover empates.
+El bootstrap no vuelve a entrenar si hay un modelo registrado; reinicios usan
+snapshot PostgreSQL y caché del modelo en volumen. No borrar volúmenes para reiniciar.
+No entrenar desde endpoints ni consultar MLflow en el camino de inferencia.
+El modelo registrado se usa solo desde su available_from (incluye selección);
+fechas anteriores devuelven 503 explicativo para evitar fuga temporal.
+No compartir la DB ni los volúmenes del producto con el futuro Airflow.
+Pruebas de fallos de scripts/verify_stack.py solo sobre un proyecto Compose
+exclusivo de prueba: reinicia/detiene contenedores, conserva volúmenes.

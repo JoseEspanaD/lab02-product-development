@@ -6,8 +6,8 @@ Preparación realizada el 2026-11-14. Fuente oficial: instrucciones_lab.pdf,
 7 páginas leídas, incluido el anexo completo. Modelado, API y persistencia implementados por fases.
 Cada fase requiere autorización expresa; no comenzar la siguiente por iniciativa propia.
 
-Estado: repositorio público configurado y main actualizado. PR #1 integrado. Fase 2 implementada en fase-2-api-persistencia, pendiente de
-revisión y aprobación de merge. No iniciar Fase 3.
+Estado: PR #1 y #2 integrados. Fase 3 implementada en fase-3-mlflow-docker,
+pendiente de revisión y aprobación de merge. No iniciar Fase 4.
 La terminal requiere elevación para Git, GitHub y descargas; se solicitará
 para cada operación bloqueada. No se han cambiado permisos del sistema.
 
@@ -166,6 +166,20 @@ Tracking, linaje y alias; Docker Compose, datos externos, bootstrap y caché/rec
 Verificar arranque vacío y segundo arranque, persistencia, imágenes fijas y
 predicción durante caída de MLflow con tiempos de health y recuperación.
 La salud integral solo podrá validarse por completo al integrar Airflow.
+
+Progreso: MLflow 3.17.2 con tracking, métricas, linaje de los cinco datasets,
+artefacto compuesto y Registry novamercado@champion. Promoción estricta por costo
+contra baseline y vigente, con guardas temporales y validación antes del alias.
+Compose con API, PostgreSQL, mlflow y bootstrap; volúmenes persistentes y contexto
+Docker sin originales/secretos. Snapshot de datos transaccional e idempotente.
+Caché persistente y recarga en segundo plano cada 10 s, sin red en inferencia.
+Integración real: arranque vacío 44,80 s, segundo arranque sin importar/entrenar,
+caída MLflow detectada 2,01 s, recuperación 14,10 s y API reiniciada offline
+sirviendo versión 2. Recarga observada con cota conservadora de 16,51 s incluyendo
+entrenamiento. Health recupera MLflow y queda degradado solo por Airflow pendiente.
+106 pruebas con PostgreSQL; detalles, métricas y límites en RESULTADOS_FASE3.md.
+No se implementó un DAG ni se simularon ejecuciones administrativas exitosas.
+
 
 ### Fase 4 — Reentrenamiento (fase-4-airflow)
 

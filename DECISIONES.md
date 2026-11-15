@@ -177,3 +177,79 @@ iniciales de las fases posteriores. No se implementaron Registry, DAG ni Compose
 Referencias de implementación: [validación y errores de FastAPI](https://fastapi.tiangolo.com/tutorial/handling-errors/),
 [transacciones psycopg](https://www.psycopg.org/psycopg3/docs/basic/transactions.html)
 y [adaptación JSONB](https://www.psycopg.org/psycopg3/docs/basic/adapt.html).
+
+## Fase 3 — MLflow, Compose y bootstrap implementados
+
+- **Cuatro servicios:** API y bootstrap comparten una imagen Python 3.14.4 con
+  dependencias fijadas; PostgreSQL 16.11 del producto y servicio llamado exactamente
+  mlflow con imagen 3.17.2. No añadir Airflow ni su DB hasta Fase 4. No hacen falta
+  Redis, MinIO, otra DB de tracking ni un servidor de inferencia separado.
+- **MLflow:** backend SQLite y artefactos en su propio volumen. Registry soportado
+  sobre backend SQL, un worker y un único escritor del alias bajo lock PostgreSQL.
+  Elegido frente a otro servicio PostgreSQL porque este volumen basta para el lab.
+  El producto sigue persistiendo en PostgreSQL; SQLite no sustituye sus tablas.
+- **Linaje:** experimento novamercado-ventas; MAE/RMSE y costo de baseline, candidato
+  y vigente; cortes, conteos, hiperparámetros, semilla, SHA-256 de requisitos y los
+  cinco CSV, entradas dataset de MLflow sin filas originales y snapshot del código
+  en el artefacto. SOURCE_REVISION es opcional; en pruebas se registró working-tree,
+  sin atribuir un commit inexistente. El código exacto queda junto al modelo.
+- **Artefacto:** ForecastArtifact contiene estimador, encoder, calibrador y cortes.
+  Se registra con flavor sklearn y firma de features/salidas, sin input_example
+  de datos originales. Cloudpickle explícito evita añadir skops para serializar
+  el objeto compuesto. Deserialización habilitada solo para el Registry propio
+  configurado; API valida clase, esquema, calibración, familias y hashes antes de
+  intercambiar. La interfaz sigue separando construcción de features e inferencia.
+- **Primer corte:** validación de 60 días hasta 2025-11-16, calibración en los 60
+  anteriores, entrenamiento previo. El bundle es aplicable desde 2025-11-17,
+  incluyendo el efecto de selección por validación. Permite el ejemplo oficial
+  histórico sin fuga temporal. Se eligió frente a entrenar con todo el histórico,
+  que no podría atender ese ejemplo sin usar datos futuros. Los demás datos
+  publicados sí están disponibles como historia de features, siempre filtrados
+  por la fecha solicitada; no se utilizan para ajustar este primer bundle.
+- **Selección posterior:** nueva validación posterior a la selección del vigente;
+  candidato y vigente se comparan en las mismas filas, sin ajustar con esa ventana.
+  Requiere métricas finitas no negativas y costo estrictamente menor que baseline
+  y vigente. Empates no promueven. MAE/RMSE se registran, sin exigir que mejoren:
+  la función objetivo de decisión es el costo asimétrico del negocio.
+- **Promoción:** entrenamiento y registro bajo lock de sesión PostgreSQL común a
+  todos los escritores. Se guarda el run, métricas, linaje y versión; se descarga
+  y valida el artefacto; solo entonces se cambia champion. No se realizan escrituras
+  ni consultas de auditoría posteriores al alias. Cerrar la sesión libera el lock.
+  Errores previos, candidato peor o fallo de promoción conservan el vigente.
+  La API además rechaza un alias apuntado manualmente a una versión no elegible.
+- **Bootstrap:** carga atómica de catálogos y 83 052 filas a PostgreSQL con hashes.
+  Si existen datos se utiliza el snapshot; si existe champion no se ajusta ni
+  registra nada. Incluso sin originales disponibles puede reutilizar lo persistido.
+  Ante fallo entre registro y alias, recupera la versión elegible ya registrada,
+  sin repetir ajuste. Versiones rechazadas no se activan ni vuelven a entrenarse
+  automáticamente. Importación completa o rollback; nunca reemplazar el snapshot
+  publicado silenciosamente. El COPY inicial tiene timeout de 120 s.
+- **API sin red para inferir:** RegisteredModelProvider conserva bundle en memoria
+  y volumen local. Refresco cada 10 s en hilo independiente, con timeouts acotados
+  y sin reintentos prolongados. Descarga y caché atómica antes de cambiar el puntero;
+  no mantener el lock de inferencia durante llamadas externas. Error de red, disco,
+  artefacto inválido o alias no elegible conserva tanto memoria como caché previas.
+- **Salud:** la disponibilidad MLflow incluye resolver/sincronizar su alias. Su
+  estado caduca tras 45 s sin comprobación reciente; una caída no bloquea predicción.
+  Sin modelo se responde 503. Sin Airflow, health sigue 200 degradado incluso tras
+  recuperar MLflow: no afirmar el ok integral que aún no puede comprobarse.
+- **Volúmenes y secretos:** postgres_data, mlflow_data y model_cache independientes.
+  Originales montados read-only solo durante bootstrap; API usa datos PostgreSQL.
+  .dockerignore es una lista de inclusión de código/configuración de build; no
+  pasan datos, .env, credenciales, .git, pruebas ni outputs al contexto. Usuario
+  sin privilegios para API/bootstrap. Variables reales permanecen fuera de Git.
+- **Validación:** suite local/SQL sin servidor MLflow para contratos, prueba de
+  serialización MLflow en filesystem y script de integración sobre Compose real.
+  Se comprobaron promoción, rechazo de alias, fallo de trabajo, interrupción,
+  recarga, caché y reinicio de todos los servicios sin borrar volúmenes.
+  Dos avisos internos conocidos de MLflow 3.17 (tipos de chat Any y codecs.open
+  obsoleto en Python 3.14) se filtran solo en el test de serialización; no se
+  silencian advertencias del código del proyecto ni se cambió Python.
+
+Pendiente Fase 4: DAG, estado/disparo real administrativos y unión de histórico
+con observaciones/promociones para reentrenar. train_and_register ya es una
+función reutilizable; la prueba de Fase 3 le pasó el snapshot publicado. No se
+presenta ese trabajo manual de integración como una ejecución de Airflow.
+
+Referencias: [Registry y aliases de MLflow](https://www.mlflow.org/docs/latest/ml/model-registry/workflow/)
+y [servidor y artefactos](https://www.mlflow.org/docs/latest/tracking/server/).
