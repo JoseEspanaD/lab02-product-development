@@ -1,11 +1,15 @@
 """PostgreSQL del producto. Cada escritura es una transacción completa."""
 
 import re
+import json
+from contextlib import contextmanager
 
 import pandas as pd
 import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
+
+from .data import Data
 
 DDL = """
 CREATE TABLE IF NOT EXISTS solicitudes (
@@ -39,6 +43,14 @@ CREATE TABLE IF NOT EXISTS observaciones (
     solicitud_id bigint NOT NULL REFERENCES solicitudes(id),
     PRIMARY KEY (fecha, tienda_id, familia_id)
 );
+CREATE TABLE IF NOT EXISTS datos_publicados (
+    nombre text PRIMARY KEY, sha256 text NOT NULL, catalogo jsonb
+);
+CREATE TABLE IF NOT EXISTS historico (
+    fecha date NOT NULL, tienda_id integer NOT NULL, familia_id text NOT NULL,
+    ventas double precision NOT NULL, en_promocion bigint NOT NULL,
+    PRIMARY KEY (fecha,tienda_id,familia_id)
+);
 """
 
 
@@ -56,6 +68,56 @@ class PostgresRepository:
     def initialize(self):
         with self.connect() as conn:
             conn.execute(DDL)
+
+    @contextmanager
+    def model_lock(self):
+        """Todos los escritores de champion deben usar este bloqueo de sesión."""
+        conn = self.connect()
+        conn.autocommit = True
+        try:
+            locked = conn.execute("SELECT pg_try_advisory_lock(202602,3) AS locked").fetchone()["locked"]
+            if not locked:
+                raise RuntimeError("Otra operación de modelos está en curso")
+            yield
+        finally:
+            # Cerrar la sesión libera el lock, sin una consulta posterior a promover.
+            conn.close()
+
+    def seed_data(self, data):
+        with self.connect() as conn:
+            conn.execute("SET LOCAL statement_timeout = '120s'")
+            existing = {r["nombre"]: r["sha256"] for r in conn.execute("SELECT nombre,sha256 FROM datos_publicados")}
+            if existing:
+                if existing != data.hashes:
+                    raise ValueError("Datos publicados distintos: no reemplazar el snapshot automáticamente")
+                return False
+            for filename, frame in [("tiendas.csv", data.stores), ("familias.csv", data.families),
+                                    ("feriados.csv", data.holidays), ("costos.csv", data.costs)]:
+                catalog = json.loads(frame.to_json(orient="records", date_format="iso"))
+                conn.execute("INSERT INTO datos_publicados VALUES (%s,%s,%s)",
+                             (filename, data.hashes[filename], Jsonb(catalog)))
+            with conn.cursor().copy("COPY historico (fecha,tienda_id,familia_id,ventas,en_promocion) FROM STDIN") as copy:
+                for row in data.history.itertuples(index=False):
+                    copy.write_row((row.fecha.date(), int(row.tienda_id), row.familia_id,
+                                    float(row.ventas), int(row.en_promocion)))
+            conn.execute("INSERT INTO datos_publicados VALUES (%s,%s,NULL)",
+                         ("historico_ventas.csv", data.hashes["historico_ventas.csv"]))
+            return True
+
+    def load_data(self):
+        with self.connect() as conn:
+            metadata = conn.execute("SELECT * FROM datos_publicados").fetchall()
+            history = conn.execute("SELECT * FROM historico ORDER BY fecha,tienda_id,familia_id").fetchall()
+        if len(metadata) != 5 or not history:
+            raise RuntimeError("Snapshot de datos todavía no cargado por bootstrap")
+        catalogs = {row["nombre"]: pd.DataFrame(row["catalogo"]) for row in metadata if row["catalogo"] is not None}
+        h = pd.DataFrame(history)
+        h["fecha"] = pd.to_datetime(h.fecha)
+        stores, holidays = catalogs["tiendas.csv"], catalogs["feriados.csv"]
+        stores["fecha_apertura"] = pd.to_datetime(stores.fecha_apertura)
+        holidays["fecha"] = pd.to_datetime(holidays.fecha)
+        return Data(h, stores, catalogs["familias.csv"], holidays, catalogs["costos.csv"],
+                    {row["nombre"]: row["sha256"] for row in metadata})
 
     def healthy(self):
         try:

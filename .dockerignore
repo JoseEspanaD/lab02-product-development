@@ -1,0 +1,7 @@
+# Lista de inclusión: originales, secretos, .git y salidas nunca entran al contexto.
+*
+!Dockerfile
+!requirements.txt
+!novamercado/
+novamercado/**
+!novamercado/*.py

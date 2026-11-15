@@ -114,3 +114,20 @@ def test_unavailable_model_preserves_cleaning_audit(pg, api_data, payload):
     assert row["status"] == 503 and row["cuerpo_limpio"]["tienda_id"] == 1
     assert row["calidad"]["estado"] == "corregido"
     assert count(pg, "predicciones") == 0
+
+
+def test_published_snapshot_is_idempotent_and_lock_is_exclusive(pg, api_data):
+    api_data.hashes = {name: "synthetic-" + name for name in
+                       ["tiendas.csv", "familias.csv", "feriados.csv", "costos.csv", "historico_ventas.csv"]}
+    with pg.model_lock():
+        assert pg.seed_data(api_data)
+        other = PostgresRepository(pg.dsn, pg.schema)
+        with pytest.raises(RuntimeError, match="en curso"):
+            with other.model_lock(): pass
+    assert not pg.seed_data(api_data)
+    restored = pg.load_data()
+    assert len(restored.history) == len(api_data.history)
+    assert restored.hashes == api_data.hashes
+    api_data.hashes["historico_ventas.csv"] = "modified"
+    with pytest.raises(ValueError, match="distintos"):
+        pg.seed_data(api_data)
