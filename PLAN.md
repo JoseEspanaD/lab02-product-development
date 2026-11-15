@@ -7,7 +7,8 @@ Preparación realizada el 2026-11-14. Fuente oficial: instrucciones_lab.pdf,
 Cada fase requiere autorización expresa; no comenzar la siguiente por iniciativa propia.
 
 Estado: PR #1–#4 integrados. Fase 5 autorizada en fase-5-verificacion-entrega.
-Auditoría integral y correcciones en curso; no crear tag ni hacer merge sin aprobación.
+Auditoría integral completada; PR final pendiente de revisión.
+No crear tag ni hacer merge sin aprobación.
 La terminal requiere elevación para Git, GitHub y descargas; se solicitará
 para cada operación bloqueada. No se han cambiado permisos del sistema.
 
@@ -208,6 +209,18 @@ reentrenamiento, caída de MLflow y reinicio sin borrar volúmenes.
 README final, DECISIONES y evidencias sanitizadas de runs/versiones/DAG/respuestas.
 Desde clon limpio: docker compose up y health ok <=10 min (sin build).
 PR final; tras aprobación y merge, crear entrega-lab2 desde main final.
+
+Progreso Fase 5: PDF completo releído, matriz de 51 verificaciones en
+RESULTADOS_FASE5.md: 50 cumplidas y tag/plazo pendiente por instrucción expresa.
+127 pruebas aprobadas sin omisiones; costos reproducidos dos veces con mejora
+36,62 %. Corregidos Unicode/NUL, versión de fallo del DAG, finalizador sin registro,
+PID obsoleto de Airflow y huecos en evidencias/README. Clon limpio 40c0b4b:
+arranque vacío 131,81 s, DAG promovido 31,96 s, cota de recarga 32,16 s y reinicio
+106,71 s. MLflow detectado 11,35 s, recuperado 11,46 s; Airflow 53,33 s y su DB
+62,07 s. Cinco días/dos tiendas, idempotencia/correcciones, caché offline y DB del
+producto verificados. Sin modificar datos ni borrar volúmenes. README suficiente
+sin Python local para levantar el producto. Ver evidencias y límites en resultados.
+Merge, tag entrega-lab2 y revisión del plazo quedan pendientes del usuario.
 
 ## Flujo Git obligatorio
 

@@ -149,7 +149,10 @@ filas futuras al ajuste/calibración. Requiere una ventana posterior a la selecc
 del vigente, métricas finitas y costo estrictamente menor que ambos. Los empates
 y candidatos peores quedan sin promoción. El artefacto se descarga y valida
 antes de mover el alias; todos los escritores del producto usan el mismo lock.
-No hay operación SQL posterior al cambio de alias: cerrar la sesión libera el lock.
+Cerrar la sesión libera el bloqueo del modelo. El DAG persiste su resultado
+después de promover; si esa escritura se interrumpe, el reintento recupera la
+versión registrada por execution_id sin repetir el ajuste ni sobrescribir un
+champion posterior. No hay una transacción distribuida entre Registry y PostgreSQL.
 
 La API consulta champion cada 10 s en segundo plano, valida el artefacto y guarda
 una caché atómica en volumen antes de intercambiar el modelo en memoria. Inferencia
@@ -173,7 +176,8 @@ docker compose down
 docker compose up
 ```
 
-`down` conserva los volúmenes. No usar `down -v` para reinicios ni eliminar esos
+`down` conserva los volúmenes. Conservar también `.env`: no regenerar claves
+ni contraseñas al reiniciar servicios ya inicializados. No usar `down -v` para reinicios ni eliminar esos
 volúmenes: contienen la operación y los modelos. Datos docentes solo se montan
 read-only en bootstrap; API lee el snapshot de PostgreSQL. `.dockerignore` permite
 únicamente Dockerfiles, requirements, DAGs y código Python: ni datos ni secretos entran
@@ -195,7 +199,7 @@ OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m pytest -q -W error
 python -m novamercado.evaluate --output outputs/evaluacion.json
 ```
 
-Las pruebas de contrato no requieren MLflow activo. Once pruebas SQL se omiten
+Las pruebas de contrato no requieren MLflow activo. Diez pruebas SQL se omiten
 si no existe TEST_DATABASE_URL; diez ejemplos docentes se omiten si no está la
 carpeta data/ejemplos. Para SQL, definir ese DSN a una DB descartable con permiso
 CREATE SCHEMA; se crean esquemas únicos conservados para inspección, sin borrar
@@ -246,7 +250,9 @@ PostgreSQL a 256 MiB. Bootstrap (768 MiB) termina antes de iniciar Airflow.
 Una sola tarea/parser/worker y hilos numéricos a uno reducen picos. En WSL con
 poca RAM evitar mantener copias anteriores del stack ejecutándose simultáneamente.
 Tras reiniciar Windows, iniciar Docker Desktop y habilitar integración WSL para
-Ubuntu antes de usar Compose. No borrar volúmenes para recuperar el servicio.
+Ubuntu antes de usar Compose. No borrar volúmenes para recuperar el servicio. El webserver de Airflow usa un
+archivo PID temporal distinto en cada arranque para evitar PIDs obsoletos tras
+stop/start.
 
 ## Auditoría final reproducible
 

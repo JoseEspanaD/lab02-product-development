@@ -135,7 +135,7 @@ def test_candidate_worse_or_failed_never_promotes(monkeypatch, history, stores, 
     repo.execution.return_value = None
     repo.load_data.return_value = Data(history, stores, pd.DataFrame({'familia_id':['pan']}), holidays, costs, {})
     repo.observations_before.return_value = history.iloc[:1].copy()
-    registry.current.return_value = SimpleNamespace(version='2')
+    registry.current.return_value = SimpleNamespace(version='1')
     registry.versions.return_value = []
     registry.load.return_value = SimpleNamespace(available_from='2023-01-01')
     registry.register.return_value = SimpleNamespace(version='2')
@@ -148,7 +148,7 @@ def test_candidate_worse_or_failed_never_promotes(monkeypatch, history, stores, 
         registry.register.assert_not_called()
     else:
         result=execute('run',repo,registry)
-        assert result['version']=='2' and result['promovido'] is False
+        assert result['version']=='1' and result['promovido'] is False
         registry.register.assert_called_once()
     registry.promote.assert_not_called()
 

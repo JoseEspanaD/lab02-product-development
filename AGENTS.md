@@ -18,8 +18,9 @@ No omitir requisitos obligatorios para reducir complejidad.
 
 Raíz: /home/jose/lab02_pd; venv .venv, prompt lab02.
 Activar con source .venv/bin/activate. Usar python -m pip desde el entorno.
-Python local 3.14.4; versión de contenedores y dependencias por validar antes de
-implementación. No instalar stack ML/MLOps hasta la fase que lo necesite.
+Python local/API/entrenamiento 3.14.4; Airflow 2.11.1 usa Python 3.12 y
+un runtime ML separado idéntico al producto. Dependencias fijadas en requirements.txt;
+lector PDF de auditoría separado. Instalar solo lo necesario dentro de .venv.
 No modificar originales de data/ ni publicar sus archivos, ejemplos o el PDF.
 Nunca publicar .env, credenciales, tokens, dumps, modelos binarios o logs crudos.
 Datos montados read-only; generados en rutas ignoradas/volúmenes.
@@ -73,7 +74,7 @@ snapshot PostgreSQL y caché del modelo en volumen. No borrar volúmenes para re
 No entrenar desde endpoints ni consultar MLflow en el camino de inferencia.
 El modelo registrado se usa solo desde su available_from (incluye selección);
 fechas anteriores devuelven 503 explicativo para evitar fuga temporal.
-No compartir la DB ni los volúmenes del producto con el futuro Airflow.
+No compartir la DB ni los volúmenes del producto con Airflow.
 Pruebas de fallos de scripts/verify_stack.py solo sobre un proyecto Compose
 exclusivo de prueba: reinicia/detiene contenedores, conserva volúmenes.
 
