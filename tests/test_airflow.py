@@ -111,3 +111,43 @@ def test_terminal_without_result_is_not_success(admin):
     admin.request = Mock(return_value={'state': 'success'})
     admin.repository.execution.return_value = {'resultado': None, 'version_inicial': '7'}
     assert admin.status('run').estado == 'fallido'
+
+
+def test_api_returns_503_when_airflow_status_is_unavailable(history, stores, holidays, costs):
+    from fastapi.testclient import TestClient
+    from novamercado.api import create_app
+    from test_api import MemoryRepository, TestModel
+    data = SimpleNamespace(history=history, stores=stores, holidays=holidays,
+                           families=pd.DataFrame([{'familia_id': 'pan', 'nombre': 'Pan'}]))
+    administration = Mock()
+    administration.status.side_effect = Unavailable('Airflow no disponible')
+    administration.start.side_effect = Unavailable('Airflow no disponible')
+    with TestClient(create_app(data, MemoryRepository(), TestModel(), administration)) as client:
+        assert client.get('/admin/reentrenar/run').status_code == 503
+        assert client.post('/admin/reentrenar').status_code == 503
+        assert client.get('/modelo').status_code == 200
+
+
+@pytest.mark.parametrize('raises', [False, True])
+def test_candidate_worse_or_failed_never_promotes(monkeypatch, history, stores, holidays, costs, raises):
+    repo, registry = Mock(), Mock()
+    repo.model_lock.return_value = nullcontext()
+    repo.execution.return_value = None
+    repo.load_data.return_value = Data(history, stores, pd.DataFrame({'familia_id':['pan']}), holidays, costs, {})
+    repo.observations_before.return_value = history.iloc[:1].copy()
+    registry.current.return_value = SimpleNamespace(version='1')
+    registry.versions.return_value = []
+    registry.load.return_value = SimpleNamespace(available_from='2023-01-01')
+    registry.register.return_value = SimpleNamespace(version='2')
+    train = Mock(side_effect=RuntimeError('fallo de ajuste')) if raises else Mock(return_value=(
+        Mock(), {'eligible':False,'reason':'No reduce costo del vigente'}, Mock()))
+    monkeypatch.setattr('novamercado.retraining.train_candidate', train)
+    if raises:
+        with pytest.raises(RuntimeError,match='fallo de ajuste'):
+            execute('run',repo,registry)
+        registry.register.assert_not_called()
+    else:
+        result=execute('run',repo,registry)
+        assert result['version']=='1' and result['promovido'] is False
+        registry.register.assert_called_once()
+    registry.promote.assert_not_called()

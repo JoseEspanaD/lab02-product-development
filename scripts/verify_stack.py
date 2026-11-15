@@ -56,7 +56,7 @@ def main():
 
     def mlflow_ready():
         status, health = get("/health")
-        return status == 200 and health.get("motivo") == "No disponible: Airflow"
+        return status == 200 and (health.get("estado") == "ok" or health.get("motivo") == "No disponible: Airflow")
 
     from novamercado.registry import Registry
     registry = Registry(args.mlflow_url)
@@ -74,7 +74,7 @@ def main():
         wait(mlflow_ready, 500)
         report["cold_start_seconds"] = time.monotonic() - started
         assert report["cold_start_seconds"] < 600
-        print("Arranque desde cero listo (Airflow pendiente)", flush=True)
+        print("Arranque desde cero listo", flush=True)
 
         current = registry.current()
         assert current is not None and current.version == "1", "Usar un proyecto Compose nuevo para esta prueba"

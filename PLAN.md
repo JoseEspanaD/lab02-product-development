@@ -6,8 +6,8 @@ Preparación realizada el 2026-11-14. Fuente oficial: instrucciones_lab.pdf,
 7 páginas leídas, incluido el anexo completo. Modelado, API y persistencia implementados por fases.
 Cada fase requiere autorización expresa; no comenzar la siguiente por iniciativa propia.
 
-Estado: PR #1 y #2 integrados. Fase 3 implementada en fase-3-mlflow-docker,
-pendiente de revisión y aprobación de merge. No iniciar Fase 4.
+Estado: PR #1, #2 y #3 integrados. Fase 4 implementada en
+fase-4-airflow-reentrenamiento, pendiente de revisión y aprobación del PR. No iniciar Fase 5.
 La terminal requiere elevación para Git, GitHub y descargas; se solicitará
 para cada operación bloqueada. No se han cambiado permisos del sistema.
 
@@ -94,7 +94,7 @@ Docker Compose:
   periódica en segundo plano, sin bloquear endpoints con llamadas a MLflow.
 - postgres: base del producto con volumen; tablas de catálogos/histórico,
   solicitudes y cambios de calidad, predicciones, observaciones y ejecuciones.
-  Puede alojar también una base separada para metadatos MLflow.
+  MLflow usa SQLite y artefactos en un volumen propio.
 - mlflow: tracking y Registry; artefactos persistentes, alias champion.
 - airflow: despliegue mínimo con LocalExecutor y componentes mínimos exigidos
   por la versión elegida; sin Redis ni Celery.
@@ -105,7 +105,7 @@ Docker Compose:
 Datos originales como bind mount de solo lectura. Artefactos, caché del modelo
 activo y bases en volúmenes. .env fuera de Git; .env.example sin secretos.
 Identidad de cada modelo y preprocesado viajan juntos en el artefacto.
-Revisar alias cada 30 s con timeout; cargar candidato antes del intercambio
+Revisar alias cada 10 s con timeout; cargar candidato antes del intercambio
 atómico. Conservar último modelo utilizable ante fallo. health consulta estado
 reciente de dependencias; recuperación no exige reinicio.
 
@@ -181,12 +181,25 @@ entrenamiento. Health recupera MLflow y queda degradado solo por Airflow pendien
 No se implementó un DAG ni se simularon ejecuciones administrativas exitosas.
 
 
-### Fase 4 — Reentrenamiento (fase-4-airflow)
+### Fase 4 — Reentrenamiento (fase-4-airflow-reentrenamiento)
 
 DAG, disparo y consulta administrativos, corte temporal reproducible, uso de
 observaciones y promociones registradas, promoción y recarga automáticas.
 Verificar 202/503/404, estados finales, fallo y no promoción sin afectar vigente,
 modelo nuevo servido <=120 s; DAG <=10 min. Evitar entrenamientos simultáneos.
+
+Progreso: Airflow 2.11.1 LocalExecutor, PostgreSQL independiente y endpoints
+administrativos conectados a la REST API real. DAG bajo demanda, una ejecución
+activa, reintento único y límites de tiempo. Snapshot de histórico/observaciones,
+promociones conservadas, linaje adicional y recuperación de versiones por run_id.
+Promoción real champion 1→2 por costo; segundo DAG sin datos nuevos no promueve;
+fallo real con MLflow caído mantiene v2 e inferencia. /health integral ok.
+Suite final: 122 pruebas aprobadas, incluidas ocho SQL; sin omisiones.
+Arranque vacío 100,47 s, DAG promovido 31,56 s, reinicio 85,12 s. Recuperación
+MLflow 24,43 s, Airflow 48,79 s y su DB 3,57 s. Persistencia verificada sin borrar
+volúmenes. Límites de memoria/CPU y sin trabajos auxiliares MLflow para operar
+sobre WSL de 5,6 GiB. Ver RESULTADOS_FASE4.md para métricas, condiciones y límites.
+No se comenzó Fase 5 ni se creó tag de entrega.
 
 ### Fase 5 — Verificación y entrega (fase-5-entrega)
 

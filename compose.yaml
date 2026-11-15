@@ -37,9 +37,10 @@ services:
     restart: unless-stopped
 
   mlflow:
-    mem_limit: 640m
+    mem_limit: 1024m
     cpus: 1
     environment:
+      MLFLOW_SERVER_ENABLE_JOB_EXECUTION: "false"
       OMP_NUM_THREADS: "1"
       OPENBLAS_NUM_THREADS: "1"
     image: ghcr.io/mlflow/mlflow:v3.17.2
@@ -150,7 +151,7 @@ services:
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?Definir AIRFLOW_FERNET_KEY}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?Definir AIRFLOW_SECRET_KEY}
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
       AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: "10"
       AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "10"
       AIRFLOW__CORE__PARALLELISM: "1"

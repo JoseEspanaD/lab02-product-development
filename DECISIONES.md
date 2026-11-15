@@ -253,3 +253,59 @@ presenta ese trabajo manual de integración como una ejecución de Airflow.
 
 Referencias: [Registry y aliases de MLflow](https://www.mlflow.org/docs/latest/ml/model-registry/workflow/)
 y [servidor y artefactos](https://www.mlflow.org/docs/latest/tracking/server/).
+
+## Fase 4 — Airflow y reentrenamiento
+
+- Airflow 2.11.1-python3.12, API REST estable v1 y autenticación Basic interna.
+  LocalExecutor con scheduler/webserver en un servicio supervisado; una sola
+  instancia evita añadir broker y workers. PostgreSQL 16.11 independiente.
+- Runtime de entrenamiento Python 3.14.4 copiado de la imagen del producto,
+  aislado mediante PYTHONHOME/LD_LIBRARY_PATH. Evita instalar versiones ML
+  distintas dentro de Airflow y deserializar bundles con librerías incompatibles;
+  no cambia el Python local ni instala dependencias globales.
+- Programación bajo demanda: el PDF exige disparo por API, no un cron. schedule=None,
+  catchup=False, max_active_runs=1 y bloqueo común de escritores de modelo.
+  POST concurrentes reutilizan ejecución activa bajo otro bloqueo SQL de envío.
+- Una tarea de entrenamiento/evaluación/promoción comparte los módulos existentes;
+  finalizador all_done conserva fallo del DAG y resultado consultable. Reintento
+  único, demora 10 s, timeout de tarea 4 min y de DAG 9 min, bajo límite de 10 min.
+- Corte derivado de ventas disponibles y promociones, jamás del reloj ni de la
+  logical_date de Airflow. Correcciones prevalecen sobre histórico. Promociones
+  provienen de última solicitud; fallback a promoción publicada para correcciones
+  históricas. Sin ambas, excluir etiqueta y registrar cobertura, sin asumir cero.
+- Linaje operacional adicional: hash de histórico unido con observaciones, filas
+  usadas/excluidas, último día e id de ejecución; dataset metadata en MLflow sin
+  filas originales. Los hashes de publicación del bundle permanecen estables
+  para verificar compatibilidad con catálogos de la API.
+- Resultado inmutable por run_id en producto; ejecución/estado real en Airflow.
+  Reintento después de registrar recupera la versión por execution_id, verifica
+  artefacto y vigente previo antes de promover; resultado guardado evita repetir
+  una ejecución completada. Un resultado exitoso sin datos nuevos no crea modelo.
+- La promoción conserva costo estrictamente menor que baseline/vigente, ventanas
+  comunes futuras y artefacto validado. Escritura de resultado posterior al alias
+  es recuperable por tags de Registry; un fallo SQL no obliga a repetir ajuste.
+- /health verifica DB y scheduler Airflow y DAG no pausado; las llamadas externas
+  tienen timeout. Predicción nunca consulta Airflow y mantiene modelo cargado
+  durante fallos del orquestador/Registry.
+
+Referencias oficiales: [REST API Airflow 2.11.1](https://airflow.apache.org/docs/apache-airflow/2.11.1/stable-rest-api-ref.html),
+[DAGs y programación](https://airflow.apache.org/docs/apache-airflow/2.11.1/core-concepts/dags.html)
+y [Docker Airflow](https://airflow.apache.org/docs/apache-airflow/2.11.1/howto/docker-compose/).
+
+### Recuperación tras reinicio de WSL
+
+Se conservaron la rama y todos los cambios. No hay evidencia persistida que
+confirme OOM como causa del bloqueo. WSL dispone de aproximadamente 5,6 GiB RAM.
+Se fijan límites por servicio: Airflow 1792 MiB, API 512 MiB, MLflow 1024 MiB,
+bootstrap 768 MiB y cada PostgreSQL 256 MiB. Bootstrap termina antes de arrancar
+Airflow; solo una tarea, parser y worker web, hilos numéricos a uno. El build
+se declara solo en API y Airflow para evitar construir copias del mismo producto.
+No se modifican permisos, configuración de WSL ni volúmenes del usuario.
+
+MLflow 3.17.2 activa por defecto un ejecutor de trabajos auxiliares con varios
+procesos, detectado durante la prueba. Se configura
+MLFLOW_SERVER_ENABLE_JOB_EXECUTION=false porque este producto solo necesita
+tracking/Registry/artefactos y Airflow ejecuta el entrenamiento. Evita consumir
+memoria en funciones ajenas al laboratorio. El límite inicial de 640 MiB causó
+un reinicio; se amplió a 1024 MiB antes de desactivar esos procesos.
+Referencia: [variables oficiales MLflow](https://mlflow.org/docs/latest/api_reference/python_api/mlflow.environment_variables.html).
