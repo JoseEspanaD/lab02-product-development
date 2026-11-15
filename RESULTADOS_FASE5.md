@@ -1,13 +1,17 @@
 # Verificación integral y entrega — Fase 5
 
-Rama fase-5-verificacion-entrega desde main aa3f27b; PR #4 confirmado MERGED.
+Fase 5 desarrollada en fase-5-verificacion-entrega desde main aa3f27b.
+Estado de cierre: PR #1–#5 confirmados integrados en main; PR #5 fusionado en
+472e657. El usuario autorizó el cierre documental y el tag anotado entrega-lab2.
 Relectura completa de las siete páginas de instrucciones_lab.pdf, incluido el
 anexo, y revisión de AGENTS, PLAN, DECISIONES, README y resultados de Fases 1–4.
 El PDF y los datos permanecen locales. Código funcional ensayado desde el clon
 limpio del commit 40c0b4b; los commits posteriores documentan las evidencias.
 
 **Resultado: 50 verificaciones cumplidas, 1 parcial y 0 incumplidas: 98,04 %.**
-La única parcial es el tag/plazo de entrega, pendiente por instrucción expresa.
+La única parcial es el criterio compuesto de tag/plazo: la referencia de entrega
+es entrega-lab2 sobre main final, pero el plazo no puede verificarse sin la fecha
+límite oficial. No se declara cumplimiento temporal.
 Las 50 verificaciones funcionales/documentales de la matriz están respaldadas
 por las pruebas indicadas; esto no es una nota oficial ni una garantía de costo futuro.
 
@@ -94,7 +98,7 @@ comprueban por separado de los requisitos generales.
 | 41 | 4 | DECISIONES cubre políticas/features/cantidad/promoción y alternativas | C | Documento revisado y ampliado; secciones por fase |
 | 42 | 4 | Operación simulada: días, defectos, observaciones, DAG, caídas y reinicio | C | A y E; cambios sintéticos de escala, sin afirmar precisión en período oculto |
 | 43 | 5 | Código completo API/modelo/DAG/Docker/pruebas y evidencia pública | C | S; archivos versionados y RESULTADOS_FASE1–5 con métricas/IDs/respuestas |
-| 44 | 5 | Tag entrega-lab2 previo al plazo de entrega | P | No creado por instrucción del usuario; requiere merge/aprobación, plazo no proporcionado |
+| 44 | 5 | Tag entrega-lab2 previo al plazo de entrega | P | Referencia entrega-lab2, tag anotado sobre main final autorizado; plazo no verificable sin fecha límite oficial |
 | 45 | 6 | POST /v1/prediccion: campos exactos, 200, fecha ISO y cantidad entera >=0 | C | U y E; doce familias y versión, repetición permitida |
 | 46 | 6 | calidad: estados/acciones/prioridad y lista vacía en ok | C | U test_warning_takes_precedence, casos válidos y corregidos; E |
 | 47 | 6–7 | POST /v1/observaciones: contrato 200, conteo nuevos/modificados y reenvío 0 | C | U concurrente y E: 12 nuevos, 0 repetidos, 1 corregido |
@@ -283,7 +287,7 @@ detenidos, con volúmenes conservados; no se cuentan como pruebas aprobadas.
 Las cifras anteriores proceden del nuevo proyecto lab02fase5verificado.
 
 
-## Límites de la evidencia y entrega pendiente
+## Límites de la evidencia y cierre
 
 - El período docente oculto no está disponible: no puede verificarse su costo,
   longitud ni demanda futura. Las observaciones sintéticas prueban integración,
@@ -298,6 +302,8 @@ Las cifras anteriores proceden del nuevo proyecto lab02fase5verificado.
 - Ante caída del PostgreSQL del producto se devuelve 503: no puede confirmarse
   una predicción sin su auditoría. La caída de MLflow/Airflow sí mantiene inferencia.
 - La prueba parte de un clon local limpio de la rama (sin heredar .venv, caches o
-  modelos), no de un tag final. Se ha verificado que el remoto es público. Merge,
-  tag entrega-lab2 y comprobación del plazo quedan pendientes por orden del usuario.
+  modelos), no de un tag final. Los cinco PR están integrados y el remoto es público.
+  El cierre solo modifica documentación y exclusiones; conserva las evidencias
+  previas sin repetir las pruebas integrales. La referencia de entrega es el tag
+  anotado entrega-lab2 sobre main final. El plazo oficial permanece sin verificar.
   El enlace al repositorio es el entregable al GES; no se accede al GES desde aquí.

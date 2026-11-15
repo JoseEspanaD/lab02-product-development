@@ -6,9 +6,11 @@ contrato completo, auditoría, arquitectura y fases. Idioma: español.
 
 ## Alcance actual
 
-Fase 5 autorizada: verificación y entrega, en fase-5-verificacion-entrega.
-Fases 1–4 integradas mediante PR #1, #2, #3 y #4. No hacer merge ni crear
-el tag entrega-lab2 hasta aprobación expresa del usuario.
+Las cinco fases están completadas; PR #1–#5 integrados en main.
+Cierre autorizado: documentación y exclusiones, commit directo en main y tag
+anotado entrega-lab2 sobre su commit final. No modificar código funcional ni
+repetir las pruebas integrales. Fecha límite oficial no disponible; no declarar
+verificado el plazo. No efectuar más cambios tras el cierre sin autorización.
 Trabajar una fase a la vez. No iniciar fase siguiente sin permiso.
 No delegar a subagentes salvo petición expresa del usuario.
 Priorizar Python sencillo, módulos pequeños y decisiones fáciles de explicar.
@@ -45,7 +47,8 @@ Datos montados read-only; generados en rutas ignoradas/volúmenes.
 
 ## Git y colaboración
 
-main es la rama estable. Solo el commit inicial de planificación se hace en main.
+main es la rama estable. Excepciones autorizadas a commits directos: planificación
+inicial y documentación/configuración de exclusiones del cierre definitivo.
 Antes de cada fase autorizada, actualizar main con git pull --ff-only y crear
 una rama independiente fase-N-descripcion desde ese main actualizado.
 Realizar commits descriptivos durante la fase. Al terminar, ejecutar las pruebas,

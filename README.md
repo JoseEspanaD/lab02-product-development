@@ -1,7 +1,8 @@
 # Laboratorio 2 — NovaMercado
 
-Fases 1–4 integradas en main. Fase 5 verifica el producto completo y prepara
-la entrega en fase-5-verificacion-entrega; tag pendiente de aprobación.
+Las cinco fases están completadas e integradas en main mediante los PR #1–#5.
+Referencia de entrega: tag anotado `entrega-lab2`, sobre el commit final de main.
+No se ha verificado el plazo de entrega: no se dispone de la fecha límite oficial.
 
 ## Arranque desde cero
 
@@ -14,7 +15,7 @@ Conservar nombres y columnas. Los ejemplos JSON son útiles para las pruebas;
 los originales y el PDF no se publican ni se incorporan a imágenes.
 
 ```bash
-git clone https://github.com/JoseEspanaD/lab02-product-development.git
+git clone --branch entrega-lab2 https://github.com/JoseEspanaD/lab02-product-development.git
 cd lab02-product-development
 mkdir -p data
 # Colocar aquí los cinco CSV indicados arriba.
@@ -189,9 +190,13 @@ y el endpoint informa ok solo cuando también están disponibles sus dependencia
 
 ## Entorno local y pruebas
 
-Usar exclusivamente el entorno existente `.venv/` (prompt lab02), Python 3.14.4:
+Para pruebas locales se requiere Python 3.14.4. Reutilizar `.venv/` (prompt lab02)
+si ya existe; crearla solo en un clon nuevo. Esto no es necesario para el arranque
+con Docker:
 
 ```bash
+# Solo si el clon no contiene un entorno local: crear .venv con Python 3.14.4.
+if [ ! -d .venv ]; then python3.14 -m venv --prompt lab02 .venv; fi
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m pip check
@@ -242,8 +247,8 @@ reglas en [AGENTS.md](AGENTS.md), fases en [PLAN.md](PLAN.md), decisiones en
 
 main estable. Cada fase autorizada usa rama propia desde main actualizado,
 commits, pruebas, push y PR. No hacer merge sin aprobación ni borrar ramas.
-Fase 5 autorizada; no hacer merge ni crear entrega-lab2 sin aprobación.
-El tag se creará desde main final después de integrar el PR.
+Los cinco PR están integrados. El cierre documental directo en main y el tag
+anotado entrega-lab2 fueron autorizados por el usuario; conservar todas las ramas.
 
 Memoria: Compose limita Airflow a 1792 MiB, API 512 MiB, MLflow 1024 MiB y cada
 PostgreSQL a 256 MiB. Bootstrap (768 MiB) termina antes de iniciar Airflow.

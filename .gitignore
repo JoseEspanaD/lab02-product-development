@@ -36,6 +36,10 @@ mlartifacts/
 logs/
 airflow_home/
 postgres_data/
+airflow_db_data/
+airflow_logs/
+mlflow_data/
+model_cache/
 outputs/
 reports/generated/
 *.log

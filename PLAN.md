@@ -6,9 +6,10 @@ Preparación realizada el 2026-11-14. Fuente oficial: instrucciones_lab.pdf,
 7 páginas leídas, incluido el anexo completo. Modelado, API y persistencia implementados por fases.
 Cada fase requiere autorización expresa; no comenzar la siguiente por iniciativa propia.
 
-Estado: PR #1–#4 integrados. Fase 5 autorizada en fase-5-verificacion-entrega.
-Auditoría integral completada; PR final pendiente de revisión.
-No crear tag ni hacer merge sin aprobación.
+Estado final: cinco fases completadas y PR #1–#5 integrados en main.
+Cierre documental en main y tag anotado entrega-lab2 autorizados por el usuario.
+Referencia de entrega: entrega-lab2 sobre main final. Plazo oficial no verificado
+porque no se dispone de la fecha límite.
 La terminal requiere elevación para Git, GitHub y descargas; se solicitará
 para cada operación bloqueada. No se han cambiado permisos del sistema.
 
@@ -200,7 +201,7 @@ Arranque vacío 100,47 s, DAG promovido 31,56 s, reinicio 85,12 s. Recuperación
 MLflow 24,43 s, Airflow 48,79 s y su DB 3,57 s. Persistencia verificada sin borrar
 volúmenes. Límites de memoria/CPU y sin trabajos auxiliares MLflow para operar
 sobre WSL de 5,6 GiB. Ver RESULTADOS_FASE4.md para métricas, condiciones y límites.
-No se comenzó Fase 5 ni se creó tag de entrega.
+Al cerrar la Fase 4 aún no se había comenzado la Fase 5 ni creado el tag.
 
 ### Fase 5 — Verificación y entrega (fase-5-verificacion-entrega)
 
@@ -208,10 +209,10 @@ Simular varios días, datos defectuosos nuevos, observaciones corregidas,
 reentrenamiento, caída de MLflow y reinicio sin borrar volúmenes.
 README final, DECISIONES y evidencias sanitizadas de runs/versiones/DAG/respuestas.
 Desde clon limpio: docker compose up y health ok <=10 min (sin build).
-PR final; tras aprobación y merge, crear entrega-lab2 desde main final.
+PR #5 integrado; cierre documental y referencia entrega-lab2 desde main final.
 
 Progreso Fase 5: PDF completo releído, matriz de 51 verificaciones en
-RESULTADOS_FASE5.md: 50 cumplidas y tag/plazo pendiente por instrucción expresa.
+RESULTADOS_FASE5.md: 50 cumplidas y una parcial por plazo oficial no verificable.
 127 pruebas aprobadas sin omisiones; costos reproducidos dos veces con mejora
 36,62 %. Corregidos Unicode/NUL, versión de fallo del DAG, finalizador sin registro,
 PID obsoleto de Airflow y huecos en evidencias/README. Clon limpio 40c0b4b:
@@ -220,7 +221,8 @@ arranque vacío 131,81 s, DAG promovido 31,96 s, cota de recarga 32,16 s y reini
 62,07 s. Cinco días/dos tiendas, idempotencia/correcciones, caché offline y DB del
 producto verificados. Sin modificar datos ni borrar volúmenes. README suficiente
 sin Python local para levantar el producto. Ver evidencias y límites en resultados.
-Merge, tag entrega-lab2 y revisión del plazo quedan pendientes del usuario.
+Los cinco PR están integrados; el usuario autorizó el cierre y el tag anotado
+entrega-lab2. La comprobación del plazo oficial sigue sin poder realizarse.
 
 ## Flujo Git obligatorio
 
@@ -229,4 +231,5 @@ nueva desde main. Commits descriptivos durante la fase; al terminar ejecutar sus
 pruebas, push y PR hacia main con resumen y resultados reales.
 Esperar aprobación explícita para merge y autorización separada de siguiente fase.
 Conservar ramas locales y remotas después del merge; no usar --delete-branch.
-No desarrollar directamente en main. Excepción: commit inicial de planificación.
+No desarrollar directamente en main. Excepciones autorizadas: commit inicial de
+planificación y commit documental de cierre definitivo.
